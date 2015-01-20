@@ -21,6 +21,6 @@ import cpu_types_pkg::word_t;
 
   // output -- set register[0] to constant 0x00000000
   assign rfif.rdat1 = !rfif.rsel1 ? '{default:0} : register[rfif.rsel1];
-  assign rfif.rdat2 = register[rfif.rsel2];
+  assign rfif.rdat2 = !rfif.rsel2 ? '{default:0} : register[rfif.rsel2];
 
 endmodule
