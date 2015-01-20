@@ -4,21 +4,23 @@
 module register_file
 import cpu_types_pkg::word_t;
 (
-  input logic CLK, nRST
+  input logic CLK, nRST, register_file_if.rf rfif
 );
 
   word_t [31:0] register;
 
+  // next state
   always_ff @(posedge CLK or negedge nRST)
   begin
     if (!nRST)
     begin
       register <= '{default:0};
     end
-    else if (rf.WEN) register[rf.wsel] <= rf.wdat;
+    else if (rfif.WEN) register[rfif.wsel] <= rfif.wdat;
   end
 
-  assign rf.rdat1 = register[rf.rsel1];
-  assign rf.rdat2 = register[rf.rsel2];
+  // output -- set register[0] to constant 0x00000000
+  assign rfif.rdat1 = !rfif.rsel1 ? '{default:0} : register[rfif.rsel1];
+  assign rfif.rdat2 = register[rfif.rsel2];
 
 endmodule
