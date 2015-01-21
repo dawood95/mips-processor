@@ -1,23 +1,34 @@
 `include "alu_if.vh"
-// `include "cpu_types_pkg.vh"
 
 module alu (
-  input logic CLK, nRST, alu_if.alu aluf
+  input logic CLK, nRST, alu_if.alu aluif
 );
 
-  case (aluf.opcode)
-    ALU_SLL :
-    ALU_SRL :
-    ALU_ADD :
-    ALU_SUB :
-    ALU_AND :
-    ALU_OR :
-    ALU_XOR :
-    ALU_NOR :
-    ALU_SLT :
-    ALU_SLTU :
+always_comb
+begin
+  case (aluif.opcode)
+    aluif.ALU_SLL : // shift left logic
+    begin end
+    aluif.ALU_SRL : // shift right logic
+    begin end
+    aluif.ALU_ADD :
+    begin end
+    aluif.ALU_SUB :
+    begin end
+    aluif.ALU_AND :
+    begin end
+    aluif.ALU_OR :
+    begin end
+    aluif.ALU_XOR :
+    begin end
+    aluif.ALU_NOR :
+    begin end
+    aluif.ALU_SLT : // set less than signed
+    begin end
+    aluif.ALU_SLTU : // set less than unsigned
+    begin end
   endcase
-
+end
 
 endmodule
 

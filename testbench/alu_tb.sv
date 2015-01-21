@@ -6,7 +6,7 @@
 */
 
 // mapped needs this
-`include "register_file_if.vh"
+`include "alu_if.vh"
 
 // mapped timing needs this. 1ns is too fast
 `timescale 1 ns / 1 ns
@@ -26,21 +26,21 @@ module register_file_tb;
   always #(PERIOD/2) CLK++;
 
   // interface
-  register_file_if rfif ();
+  register_file_if aluif ();
   // test program
-  test PROG (CLK, nRST, rfif);
+  test PROG (CLK, nRST, aluif);
   // DUT
 `ifndef MAPPED
-  register_file DUT(CLK, nRST, rfif);
+  alu DUT(CLK, nRST, aluif);
 `else
-  register_file DUT(
-    .\rfif.rdat2 (rfif.rdat2),
-    .\rfif.rdat1 (rfif.rdat1),
-    .\rfif.wdat (rfif.wdat),
-    .\rfif.rsel2 (rfif.rsel2),
-    .\rfif.rsel1 (rfif.rsel1),
-    .\rfif.wsel (rfif.wsel),
-    .\rfif.WEN (rfif.WEN),
+  alu DUT(
+    .\aluif.opcode (aluif.opcode),
+    .\aluif.portA (aluif.portA),
+    .\aluif.portB (aluif.portB),
+    .\aluif.outPort (aluif.outPort),
+    .\aluif.negative (aluif.negative),
+    .\aluif.overflow (aluif.overflow),
+    .\aluif.zero (aluif.zero),
     .\nRST (nRST),
     .\CLK (CLK)
   );
@@ -52,7 +52,7 @@ endmodule
 program test (
   input logic CLK,
   output logic nRST,
-  register_file_if.tb rfif_tb
+  alu_if.tb aluif_tb
 );
 
 initial begin
@@ -79,8 +79,8 @@ initial begin
   testnum = 1;
   rfif_tb.rsel1 = 0;
   #(PERIOD);
-  if (rfif_tb.rdat1 != 0) $error("TEST 1 FAILED: register[0] is %d", rfif_tb.rdat1);
-  else $display("TEST  1 passed");
+  if (rfif_tb.rdat1 != 0) $error("TEST 1 passed: register[0] is %d", rfif_tb.rdat1);
+  else $display("TEST  1 PASSED");
 
   // TEST 2-33: check the values in every register
   for (i=1; i<32; i++) begin
