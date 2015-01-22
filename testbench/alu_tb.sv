@@ -11,7 +11,7 @@
 // mapped timing needs this. 1ns is too fast
 `timescale 1 ns / 1 ns
 
-module register_file_tb;
+module alu_tb;
 
   parameter PERIOD = 10;
 
@@ -26,7 +26,7 @@ module register_file_tb;
   always #(PERIOD/2) CLK++;
 
   // interface
-  register_file_if aluif ();
+  alu_if aluif ();
   // test program
   test PROG (CLK, nRST, aluif);
   // DUT
@@ -49,10 +49,12 @@ module register_file_tb;
 endmodule
 
 
-program test (
+program test
+import cpu_types_pkg::*;
+(
   input logic CLK,
   output logic nRST,
-  alu_if.tb aluif_tb
+  aluif aluif_tb
 );
 
 initial begin
@@ -66,15 +68,91 @@ initial begin
   #(PERIOD);
 
   // write values into every register
+/*
   rfif_tb.WEN = 1;
   for (int i=1; i <= 32; i++) begin
     rfif_tb.wsel = i-1;
     rfif_tb.wdat = i;
     #(PERIOD);
   end
+*/
 
   $display("\n\n***** START OF TESTS *****\n");
 
+  // TEST 1: subtraction - basic
+  testnum++;
+  aluif_tb.opcode = ALU_ADD;
+  aluif_tb.portA = 32'd40;
+  aluif_tb.portB = 32'd50;
+  #(PERIOD);
+  if (aluif_tb.outPort == 32'd90) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: output = %d", testnum, aluif_tb.outPort);
+
+  // TEST 2: addition - zero flag
+  testnum++;
+  aluif_tb.opcode = ALU_ADD;
+  aluif_tb.portA = -40;
+  aluif_tb.portB = 32'd40;
+  #(PERIOD);
+  if (aluif_tb.zero) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: zero flag not set", testnum);
+
+  // TEST 3: addition - overflow flag
+  testnum++;
+  aluif_tb.opcode = ALU_ADD;
+  aluif_tb.portA = 1800000000;
+  aluif_tb.portB = 1800000000;
+  #(PERIOD);
+  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: overflow flag not set", testnum);
+
+  // TEST 4: addition - negative flag
+  testnum++;
+  aluif_tb.opcode = ALU_ADD;
+  aluif_tb.portA = -200;
+  aluif_tb.portB = -300;
+  #(PERIOD);
+  if (aluif_tb.negative) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: negative flag not set", testnum);
+
+  // TEST 5: subtraction - basic
+  testnum++;
+  aluif_tb.opcode = ALU_SUB;
+  aluif_tb.portA = 10000;
+  aluif_tb.portB = 6000;
+  #(PERIOD);
+  if (aluif_tb.outPort == 4000) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: subtraction result = %d", testnum,
+aluif_tb.outPort);
+
+  // TEST 6: subtraction - zero flag
+  testnum++;
+  aluif_tb.opcode = ALU_SUB;
+  aluif_tb.portA = 40;
+  aluif_tb.portB = 40;
+  #(PERIOD);
+  if (aluif_tb.zero) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: zero flag not set", testnum);
+
+  // TEST 7: subtraction - overflow flag
+  testnum++;
+  aluif_tb.opcode = ALU_SUB;
+  aluif_tb.portA = -180000000;
+  aluif_tb.portB = 1800000000;
+  #(PERIOD);
+  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: overflow flag not set", testnum);
+
+  // TEST 8: subtraction - negative flag
+  testnum++;
+  aluif_tb.opcode = ALU_SUB;
+  aluif_tb.portA = 600;
+  aluif_tb.portB = 1000;
+  #(PERIOD);
+  if (aluif_tb.negative) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: negative flag not set", testnum);
+
+/*
   // TEST 1: check that register[0] is 0 even though we wrote a 1
   testnum = 1;
   rfif_tb.rsel1 = 0;
@@ -108,6 +186,7 @@ initial begin
 
   if (!chknRST) $error("TEST 34 FAILED at reg %d", i);
   else $display("TEST 34 passed");
+*/
 
   #(PERIOD);
 

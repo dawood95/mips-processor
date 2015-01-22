@@ -26,8 +26,8 @@ interface alu_if;
 
   // alu tb ports
   modport tb (
-    input opcode, portA, portB,
-    output outPort, negative, overflow, zero
+    input outPort, negative, overflow, zero,
+    output opcode, portA, portB
   );
 endinterface
 
