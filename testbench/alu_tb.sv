@@ -88,7 +88,7 @@ initial begin
   if (aluif_tb.outPort == 32'd90) $display("TEST %2d passed", testnum);
   else $error("TEST %2d FAILED: output = %d", testnum, aluif_tb.outPort);
 
-  // TEST 2: addition - zero flag
+  // TEST 2 addition - zero flag
   testnum++;
   aluif_tb.opcode = ALU_ADD;
   aluif_tb.portA = -40;
@@ -97,14 +97,15 @@ initial begin
   if (aluif_tb.zero) $display("TEST %2d passed", testnum);
   else $error("TEST %2d FAILED: zero flag not set", testnum);
 
-  // TEST 3: addition - overflow flag
+  // TEST 3: addition - overflow flag bits
   testnum++;
   aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = 1800000000;
-  aluif_tb.portB = 1800000000;
+  aluif_tb.portA = 32'b01111111111111111111111111111111;// 1800000001;
+  aluif_tb.portB = 32'b00000000000000000000000000000001;// 1800000001;
   #(PERIOD);
   if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
   else $error("TEST %2d FAILED: overflow flag not set", testnum);
+
 
   // TEST 4: addition - negative flag
   testnum++;
@@ -135,10 +136,11 @@ aluif_tb.outPort);
   else $error("TEST %2d FAILED: zero flag not set", testnum);
 
   // TEST 7: subtraction - overflow flag
+  /********** OVERFLOW NEEDS MORE TESTING ******************/
   testnum++;
   aluif_tb.opcode = ALU_SUB;
-  aluif_tb.portA = -180000000;
-  aluif_tb.portB = 1800000000;
+  aluif_tb.portA = -1800000000;
+  aluif_tb.portB = 1800000001;
   #(PERIOD);
   if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
   else $error("TEST %2d FAILED: overflow flag not set", testnum);
@@ -151,6 +153,15 @@ aluif_tb.outPort);
   #(PERIOD);
   if (aluif_tb.negative) $display("TEST %2d passed", testnum);
   else $error("TEST %2d FAILED: negative flag not set", testnum);
+
+  // TEST 9: addition - overflow flag large numbers
+  testnum++;
+  aluif_tb.opcode = ALU_ADD;
+  aluif_tb.portA = 1800000001;
+  aluif_tb.portB = 1800000001;
+  #(PERIOD);
+  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
+  else $error("TEST %2d FAILED: overflow flag not set", testnum);
 
 /*
   // TEST 1: check that register[0] is 0 even though we wrote a 1
