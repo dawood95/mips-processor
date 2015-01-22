@@ -9,7 +9,7 @@
 module alu_fpga (
 		 input logic [3:0]   KEY,
 		 input logic [17:0]  SW,
-		 output logic [6:0]  HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7
+		 output logic [6:0]  HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7,
 		 output logic [2:0] LEDR
 		 );
    import cpu_types_pkg::*;
@@ -18,8 +18,9 @@ module alu_fpga (
 
    word_t val[7:0];
    word_t result;
-   
-   assign alif.porta = {16{SW[16]},SW[15:0]};
+
+   assign alif.op[3:0] = ~KEY;
+   assign alif.porta = {16*{SW[16]},SW[15:0]};
    assign result = alif.out;
    assign LEDR[0] = alif.zf;
    assign LEDR[1] = alif.nf;
@@ -27,7 +28,7 @@ module alu_fpga (
    
    always_ff @ (posedge SW[17])
      begin
-	alif.portb <= {16{SW[16]},SW[15:0]};
+	alif.portb <= {16*{SW[16]},SW[15:0]};
      end
    
    assign val[0] = result [3:0];
