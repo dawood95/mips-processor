@@ -15,7 +15,7 @@ module alu
 
   always_comb
     begin
-       case (sv.op)
+       casez (sv.op)
 	 ALU_SLL: 
 	   begin
 	      sv.out = sv.porta << sv.portb;
