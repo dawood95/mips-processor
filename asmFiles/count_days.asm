@@ -1,19 +1,35 @@
 # Sheik Dawood
 # Lab2 - Section3
-# mult.asm - Lab2
-# multiplication subroutine
+# count_days.asm - Lab2
+# Day count subroutine
 
 	org 0x0000
 	ori $29, $0, 0xFFFC
-	ori $4, $0, 0x0002
-	ori $5, $0, 0x0008
-	push $4
-	push $5
+	#Day
+	ori $4, $0, 15
+	#Month
+	ori $5, $0, 1
+	#Year
+	ori $6, $0, 2015
+count_days:
+	addi $6, $6, -2000
+	push $6
+	ori $1, $0, 365
+	push $1
 	jal mult
-	pop $2
+	pop $6
+	addi $5, $5, -1
+	push $5
+	ori $1, $0, 30
+	push $1
+	jal mult
+	pop $5
+	add $1, $5, $6
+	add $1, $1, $4
 	halt
 
-#Mult Subroutine - $2 and $3 are bound to change
+
+#Mult Subroutine
 mult:	pop $2
 	pop $3
 	push $4 #mask

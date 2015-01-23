@@ -1,19 +1,38 @@
 # Sheik Dawood
 # Lab2 - Section3
-# mult.asm - Lab2
-# multiplication subroutine
+# mult_procedure.asm - Lab2
+# multiplation_procedure subroutine
 
 	org 0x0000
 	ori $29, $0, 0xFFFC
-	ori $4, $0, 0x0002
-	ori $5, $0, 0x0008
-	push $4
-	push $5
-	jal mult
-	pop $2
+	ori $1, $0, 0x0002
+	push $1
+	push $1	
+	push $1
+	ori $1, $0, 0x0006		
+	push $1	
+	jal mult_procedure
+	pop $1
 	halt
 
-#Mult Subroutine - $2 and $3 are bound to change
+# Multiplication Procedure Subroutine
+mult_procedure:
+	ori $4, $0, 0xFFFC
+check:	pop $2
+	beq $29, $4, end
+	pop $3
+	push $31
+	push $3
+	push $2
+	jal mult
+	pop $2
+	pop $31
+	push $2
+	j check
+end:	push $2
+	jr $31
+
+#Mult Subroutine
 mult:	pop $2
 	pop $3
 	push $4 #mask
