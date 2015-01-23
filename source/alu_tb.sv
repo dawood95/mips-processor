@@ -15,7 +15,19 @@ module alu_tb;
 
    test PROG (alif);
 
+`ifndef MAPPED
    alu DUT(alif);
+`else
+   alu DUT(
+	   .\sv.porta (alif.porta),
+	   .\sv.portb (alif.portb),
+	   .\sv.op (alif.op),
+	   .\sv.out (alif.out),
+	   .\sv.nf (alif.nf),
+	   .\sv.zf (alif.zf),
+	   .\sv.of (alif.of)
+	   );
+`endif
    
 endmodule // alu_tb
 

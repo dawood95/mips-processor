@@ -20,7 +20,7 @@ module alu_fpga (
    word_t result;
 
    assign alif.op[3:0] = ~KEY;
-   assign alif.porta = {16*{SW[16]},SW[15:0]};
+   assign alif.porta = {{16{SW[16]}},SW[15:0]};
    assign result = alif.out;
    assign LEDR[0] = alif.zf;
    assign LEDR[1] = alif.nf;
@@ -28,7 +28,7 @@ module alu_fpga (
    
    always_ff @ (posedge SW[17])
      begin
-	alif.portb <= {16*{SW[16]},SW[15:0]};
+	alif.portb <= {{16{SW[16]}},SW[15:0]};
      end
    
    assign val[0] = result [3:0];
