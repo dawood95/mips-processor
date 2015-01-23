@@ -30,7 +30,7 @@ end
 
 always_comb
 begin
-    casez (aluif.outputPort[3:0])
+    casez (aluif.outPort[3:0])
       'h0: HEX0 = 7'b1000000;
       'h1: HEX0 = 7'b1111001;
       'h2: HEX0 = 7'b0100100;
@@ -49,7 +49,7 @@ begin
       'hf: HEX0 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[7:4])
+    casez (aluif.outPort[7:4])
       'h0: HEX1 = 7'b1000000;
       'h1: HEX1 = 7'b1111001;
       'h2: HEX1 = 7'b0100100;
@@ -68,7 +68,7 @@ begin
       'hf: HEX1 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[11:8])
+    casez (aluif.outPort[11:8])
       'h0: HEX2 = 7'b1000000;
       'h1: HEX2 = 7'b1111001;
       'h2: HEX2 = 7'b0100100;
@@ -88,7 +88,7 @@ begin
       endcase
 
 
-    casez (aluif.outputPort[15:12])
+    casez (aluif.outPort[15:12])
       'h0: HEX3 = 7'b1000000;
       'h1: HEX3 = 7'b1111001;
       'h2: HEX3 = 7'b0100100;
@@ -107,7 +107,7 @@ begin
       'hf: HEX3 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[19:16])
+    casez (aluif.outPort[19:16])
       'h0: HEX4 = 7'b1000000;
       'h1: HEX4 = 7'b1111001;
       'h2: HEX4 = 7'b0100100;
@@ -126,7 +126,7 @@ begin
       'hf: HEX4 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[23:20])
+    casez (aluif.outPort[23:20])
       'h0: HEX5 = 7'b1000000;
       'h1: HEX5 = 7'b1111001;
       'h2: HEX5 = 7'b0100100;
@@ -145,7 +145,7 @@ begin
       'hf: HEX5 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[27:24])
+    casez (aluif.outPort[27:24])
       'h0: HEX6 = 7'b1000000;
       'h1: HEX6 = 7'b1111001;
       'h2: HEX6 = 7'b0100100;
@@ -164,7 +164,7 @@ begin
       'hf: HEX6 = 7'b0001110;
       endcase
 
-    casez (aluif.outputPort[31:28])
+    casez (aluif.outPort[31:28])
       'h0: HEX7 = 7'b1000000;
       'h1: HEX7 = 7'b1111001;
       'h2: HEX7 = 7'b0100100;

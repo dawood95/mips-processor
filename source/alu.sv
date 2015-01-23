@@ -11,6 +11,7 @@ import cpu_types_pkg::*;
 
 always_comb
 begin
+  aluif.overflow = 0;
   case (aluif.opcode)
     // shift left logic
     ALU_SLL : tempOut = aluif.portA << aluif.portB;
