@@ -7,10 +7,10 @@
 	ori $29, $0, 0xFFFC
 	ori $1, $0, 0x0002
 	push $1
-	push $1	
+	ori $1, $0, 0x0003	
 	push $1
-	ori $1, $0, 0x0006		
-	push $1	
+	ori $1, $0, 0x0004
+	push $1
 	jal mult_procedure
 	pop $1
 	halt
