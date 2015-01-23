@@ -4,7 +4,7 @@
 module alu
 import cpu_types_pkg::*;
 (
-  input logic CLK, nRST, alu_if.alu aluif
+  alu_if.alu aluif
 );
 
   word_t tempOut;
@@ -18,7 +18,7 @@ begin
     ALU_SRL : tempOut = aluif.portA >> aluif.portB;
     ALU_ADD :
     begin
-      tempOut = aluif.portA + aluif.portB;
+      tempOut = $signed(aluif.portA) + $signed(aluif.portB);
       /* addition overflow detection method:
        * pos + pos = neg is overflow
        * neg + neg = pos is overflow
@@ -31,7 +31,7 @@ begin
     end
     ALU_SUB :
     begin
-      tempOut = aluif.portA - aluif.portB;
+      tempOut = $signed(aluif.portA) - $signed(aluif.portB);
       /* subtraction overflow detection method:
        * neg - pos = pos is overflow
        * pos - neg = neg is overflow
