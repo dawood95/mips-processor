@@ -46,7 +46,7 @@ begin
     ALU_AND : tempOut = aluif.portB & aluif.portA;
     ALU_OR : tempOut = aluif.portA | aluif.portB;
     ALU_XOR : tempOut = aluif.portA ^ aluif.portB;
-    ALU_NOR : tempOut = !(aluif.portA | aluif.portB);
+    ALU_NOR : tempOut = ~(aluif.portA | aluif.portB);
     // set less than signed (a<b -> 1, inverse -> 0)
     ALU_SLT : tempOut = $signed(aluif.portA) < $signed(aluif.portB);
     // set less than unsigned

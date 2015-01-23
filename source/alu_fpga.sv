@@ -24,7 +24,7 @@ assign aluif.portA[31:16] = {16{SW[16]}};
 assign aluif.opcode[3:0] = ~KEY[3:0];
 
 always_ff @ (posedge SW[17]) begin
-    registerB <= SW[16:0];
+    if(SW[17]) registerB <= SW[16:0];
 end
 
 
