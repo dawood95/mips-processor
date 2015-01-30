@@ -52,6 +52,7 @@ program test(
    initial
      begin
 	//	dump_memory();
+	$monitor("iWAIT = %d, dWAIT = %d",ccif.iwait,ccif.dwait);
 	nRST = 1'b1;
 	nRST = 1'b0;
 	ccif.iREN = 1'b1;
@@ -69,16 +70,16 @@ program test(
 	$display("Instruction from address %h = %h",ccif.iaddr,ccif.iload);
 	ccif.dREN = 1'b1;
 	repeat (4) @(posedge CLK);
-	$display("Reading data from address");
+	$display("Reading data from address while iREN = 1");
 	$display("Instruction from address %h = %h",ccif.iaddr,ccif.iload);
 	$display("Data from address %h = %h",ccif.daddr,ccif.dload);
 	ccif.dREN = 1'b0;
 	ccif.iREN = 1'b0;
 	ccif.dWEN = 1'b1;
 	ccif.daddr = 32'h00000004;
-	ccif.dstore = 32'h00000001;
+	ccif.dstore = 32'hdeadbeef;
 	repeat (4) @(posedge CLK);
-	$display("Writing data to address");
+	$display("Writing data %h to address %h",ccif.dstore, ccif.daddr);
 	dump_memory;
      end
 

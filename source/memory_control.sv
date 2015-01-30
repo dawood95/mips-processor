@@ -42,9 +42,15 @@ module memory_control (
 	  ACCESS:
 	    begin
 	       if(ccif.dREN[CPUID] || ccif.dWEN[CPUID])
-		 ccif.dwait[CPUID] = 1'b0;
+		 begin
+		    ccif.dwait[CPUID] = 1'b0;
+		    ccif.iwait[CPUID] = 1'b1;
+		 end
 	       else
-		 ccif.iwait[CPUID] = 1'b0;
+		 begin
+		    ccif.iwait[CPUID] = 1'b0;
+		    ccif.dwait[CPUID] = 1'b1;
+		 end
 	    end
 	  BUSY:
 	    begin
