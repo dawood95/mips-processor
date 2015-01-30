@@ -13,26 +13,23 @@
 `include "cpu_types_pkg.vh"
 
 module memory_control (
-		       input CLK, nRST,
 		       cache_control_if.cc ccif
 		       );
    // type import
    import cpu_types_pkg::*;
    // number of cpus for cc
-   parameter CPUS = 2;
+   parameter CPUS = 1;
 
-   always_ff @(posedge CLK or negedge nRST)
+   always_comb
      begin
-	if(!nRST)
-	  begin
-	     iwait <= 1'b0;
-	     dwait <= 1'b0;
-	     iload <= 1'b0;
-	     dload <= 1'b0;
-	     
-	  end
-	else
+	ccif.iwait = (ccif.iREN == 1'b1 && (ccif.dWEN != 1'b1 && ccif.dREN != 1'b1) && ccif.ramstate == BUSY) ? 1'b1 : 1'b0;
+	ccif.dwait = ((ccif.dWEN == 1'b1 || ccif.dREN == 1'b1) && ccif.ramstate == BUSY) ? 1'b1 : 1'b0;
+	ccif.ramstore = ccif.dstore;
+	ccif.ramaddr = (ccif.dREN == 1'b1 || ccif.dWEN == 1'b1) ? ccif.daddr : ccif.iaddr;
+	ccif.iload = (ccif.iREN == 1'b1 && ccif.dREN != 1'b1) ? ccif.ramload : 0;
+	ccif.dload = (ccif.dREN == 1'b1) ? ccif.ramload : 0;
+	ccif.ramWEN = ccif.dWEN;
+	ccif.ramREN = (ccif.dREN | ccif.iREN);
      end
    
-
 endmodule
