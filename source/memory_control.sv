@@ -68,21 +68,6 @@ module memory_control (
         ccif.dwait[CPUID] = 0;
       end
     endcase
-
-
-
-/*
-    iwait = (ccif.iREN[0] && ccif.ramstate == ACCESS) ? 0 : 1;
-    dwait = (ccif.dREN[0] || ccif.dWEN[0]) && ccif.ramstate == ACCESS ? 0 : 1;
-    ccif.iwait = iwait || !dwait;
-    ccif.dwait = dwait;
-    ccif.ramstore = ccif.dstore[0];
-    ccif.iload = ccif.ramload;
-    ccif.dload = ccif.ramload;
-    ccif.ramWEN = ccif.dWEN[0];
-    ccif.ramaddr = (ccif.dREN[0] || ccif.dWEN[0]) ? ccif.daddr[0] : ccif.iaddr[0];
-    ccif.ramREN = (ccif.dREN[0] || ccif.iREN[0]) && !ccif.dWEN[0] ? 1 : 0;
-*/
   end
 
 endmodule

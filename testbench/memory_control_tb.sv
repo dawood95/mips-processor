@@ -36,7 +36,7 @@ module memory_control_tb;
     nRST = 1'b1;
     #(PERIOD*2);
 
-    // TEST 1-40: write/read data to/from all addresses
+    // TEST 1: write/read data to/from all addresses
     testnum++;
     ccif.dREN = 2'b00;
     ccif.dWEN = 2'b01;
@@ -61,17 +61,16 @@ module memory_control_tb;
       #(PERIOD*10);
       if (ccif.dload[0] == i*16)
       begin
-        $display("TEST %2d passed", testnum);
+        $display("TEST %2d-%0d passed", testnum, i / 4);
       end else begin
-        $display("TEST %2d FAILED: Write or read failed at address %h. Data was: %h but it should have been %h", testnum, i, ccif.dload[0], i*16);
+        $display("TEST %2d-%0d FAILED: Write or read failed at address %h. Data was: %h but it should have been %h", testnum, i / 4, i, ccif.dload[0], i*16);
       end
     end
 
     // output contents of RAM to file
     dump_memory();
 
-    // TEST 41: NEED TO TEST EDGE CASES
-    // (but it's Friday night... )
+    // TEST 2: NEED TO TEST EDGE CASES
 
     $display("\n***** END OF TESTS *****\n\n");
     $finish;
