@@ -36,7 +36,8 @@ module memory_control_tb;
     nRST = 1'b1;
     #(PERIOD*2);
 
-    // TEST 1: write/read data to/from all addresses
+
+    // TEST 1: read and write data
     testnum++;
     ccif.dREN = 2'b00;
     ccif.dWEN = 2'b01;
@@ -52,25 +53,78 @@ module memory_control_tb;
     // read signals to verify the writes
     ccif.dREN = 2'b01;
     ccif.dWEN = 2'b00;
+    ccif.iREN = 2'b00;
     ccif.dstore = 0;
     #(PERIOD*50);
 
     // read back the data we wrote
     for (int i=0; i <= ADDR_MAX; i=i+4) begin
       ccif.daddr = i;
-      #(PERIOD*10);
+      #(PERIOD*5);
       if (ccif.dload[0] == i*16)
       begin
         $display("TEST %2d-%0d passed", testnum, i / 4);
       end else begin
-        $display("TEST %2d-%0d FAILED: Write or read failed at address %h. Data was: %h but it should have been %h", testnum, i / 4, i, ccif.dload[0], i*16);
+        $error("TEST %2d-%0d FAILED: Write or read failed at address %h. Data was: %h but it should have been %h", testnum, i / 4, i, ccif.dload[0], i*16);
       end
     end
 
     // output contents of RAM to file
     dump_memory();
 
-    // TEST 2: NEED TO TEST EDGE CASES
+
+    // TEST 2: read instruction from RAM
+    testnum++;
+
+    // first write an "instruction" to a specific address
+    ccif.dREN = 2'b00;
+    ccif.dWEN = 2'b01;
+    ccif.iREN = 2'b00;
+    ccif.daddr = 16;
+    ccif.dstore = 32'hDEADBEEF;
+    #(PERIOD*5);
+
+    // now read the instruction and check it
+    ccif.dWEN = 2'b00;
+    ccif.iREN = 2'b01;
+    ccif.iaddr = 16;
+    #(PERIOD*5);
+    if (ccif.dload[0] == 32'hDEADBEEF)
+        $display("TEST %2d passed", testnum);
+    else $error("TEST %2d FAILED: read %h at addr 16 but should have been %h", testnum, ccif.dload[0], ccif.dstore);
+
+
+    // TEST 3: test wait signals for instr read
+    testnum++;
+    if (ccif.dwait[0] == 1 && ccif.iwait[0] == 0)
+      $display("TEST %2d passed", testnum);
+    else $error("TEST %2d FAILED: dwait was %d, should have been 1 and iwait was %d, should have been 0", testnum, ccif.dwait[0], ccif.iwait[0]);
+
+    // TEST 4: test wait signals for data read
+    testnum++;
+    ccif.dREN = 2'b01;
+    ccif.dWEN = 2'b00;
+    ccif.iREN = 2'b00;
+    #(PERIOD*2);  // probably don't need this, but give some buffer anyway
+    if (ccif.dwait[0] == 0 && ccif.iwait[0] == 1)
+      $display("TEST %2d passed", testnum);
+    else $error("TEST %2d FAILED: dwait was %d, should have been 0 and iwait was %d, should have been 1", testnum, ccif.dwait[0], ccif.iwait[0]);
+
+    // TEST 5: test wait signals for data write
+    testnum++;
+    ccif.dREN = 2'b00;
+    ccif.dWEN = 2'b01;
+    ccif.iREN = 2'b00;
+    #(PERIOD*2);  // probably don't need this, but give some buffer anyway
+    if (ccif.dwait[0] == 0 && ccif.iwait[0] == 1)
+      $display("TEST %2d passed", testnum);
+    else $error("TEST %2d FAILED: dwait was %d, should have been 0 and iwait was %d, should have been 1", testnum, ccif.dwait[0], ccif.iwait[0]);
+
+    // QUESTION: Is it necessary to test for things like a dREN being
+    // asserted during an instruction read or vice versa?  Should the
+    // CPU be smart enough to watch the wait signals and only assert
+    // things when the wait signals say it can?  I believe my current
+    // combinational logic will fail for the case I just described.
 
     $display("\n***** END OF TESTS *****\n\n");
     $finish;

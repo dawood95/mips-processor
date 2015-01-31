@@ -1,6 +1,6 @@
 /*
-  Eric Villasenor
-  evillase@gmail.com
+  Everett Berry
+  epberry@purdue.edu
 
   this block is the coherence protocol
   and artibtration for ram
@@ -22,9 +22,6 @@ module memory_control (
   // number of cpus for cc
   parameter CPUS = 1;
   parameter CPUID = 0;
-
-  // intermediate states
-  logic iwait, dwait, rWEN, rREN;
 
   always_comb
   begin
@@ -64,6 +61,7 @@ module memory_control (
       default:
       begin
         // Both FREE and ERROR states are covered here
+        // What do to on ERROR state?
         ccif.iwait[CPUID] = 0;
         ccif.dwait[CPUID] = 0;
       end

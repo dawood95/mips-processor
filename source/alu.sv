@@ -1,3 +1,10 @@
+/*
+  Everett Berry
+  epberry@purdue.edu
+
+  ALU
+*/
+
 `include "alu_if.vh"
 `include "cpu_types_pkg.vh"
 
