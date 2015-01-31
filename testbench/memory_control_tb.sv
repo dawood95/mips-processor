@@ -70,7 +70,8 @@ module memory_control_tb;
     // output contents of RAM to file
     dump_memory();
 
-    // TEST 41:
+    // TEST 41: NEED TO TEST EDGE CASES
+    // (but it's Friday night... )
 
     $display("\n***** END OF TESTS *****\n\n");
     $finish;

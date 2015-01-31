@@ -21,6 +21,7 @@ module memory_control (
 
   // number of cpus for cc
   parameter CPUS = 1;
+  parameter CPUID = 0;
 
   // intermediate states
   logic iwait, dwait, rWEN, rREN;
@@ -28,45 +29,47 @@ module memory_control (
   always_comb
   begin
     // signals which are always constant
-    ccif.ramstore = ccif.dstore;
-    ccif.dload = ccif.ramload;
-    ccif.iload = ccif.ramload;
+    ccif.ramstore = ccif.dstore[CPUID];
+    ccif.dload[CPUID] = ccif.ramload;
+    ccif.iload[CPUID] = ccif.ramload;
 
     // signals with basic combo logic
-    ccif.ramREN = (ccif.iREN || ccif.dREN) && !ccif.dWEN;
-    ccif.ramWEN = ccif.dWEN && !(ccif.iREN || ccif.dREN);
+    ccif.ramREN = (ccif.iREN[CPUID] || ccif.dREN[CPUID]) && !ccif.dWEN[CPUID];
+    ccif.ramWEN = ccif.dWEN[CPUID] && !(ccif.iREN[CPUID] || ccif.dREN[CPUID]);
 
     // referee ram addr based on which enables selected
-    if (ccif.iREN && !(ccif.dREN || ccif.dWEN))
-      ccif.ramaddr = ccif.iaddr;
-    else ccif.ramaddr = ccif.daddr;
+    if (ccif.iREN[CPUID] && !(ccif.dREN[CPUID] || ccif.dWEN[CPUID]))
+      ccif.ramaddr = ccif.iaddr[CPUID];
+    else ccif.ramaddr = ccif.daddr[CPUID];
 
     // tell datapath to wait on instrs or data based on ramstate
     casez (ccif.ramstate)
       BUSY:
       begin
-        ccif.iwait = 1;
-        ccif.dwait = 1;
+        ccif.iwait[CPUID] = 1;
+        ccif.dwait[CPUID] = 1;
       end
       ACCESS:
       begin
-        if (ccif.iREN && !(ccif.dREN || ccif.dWEN))
+        if (ccif.iREN[CPUID] && !(ccif.dREN[CPUID] || ccif.dWEN[CPUID]))
         begin
-          ccif.dwait = 1;
-          ccif.iwait = 0;
+          ccif.dwait[CPUID] = 1;
+          ccif.iwait[CPUID] = 0;
         end else
         begin
-          ccif.dwait = 0;
-          ccif.iwait = 1;
+          ccif.dwait[CPUID] = 0;
+          ccif.iwait[CPUID] = 1;
         end
       end
       default:
       begin
         // Both FREE and ERROR states are covered here
-        ccif.iwait = 0;
-        ccif.dwait = 0;
+        ccif.iwait[CPUID] = 0;
+        ccif.dwait[CPUID] = 0;
       end
     endcase
+
+
 
 /*
     iwait = (ccif.iREN[0] && ccif.ramstate == ACCESS) ? 0 : 1;
