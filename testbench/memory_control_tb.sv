@@ -26,19 +26,21 @@ module memory_control_tb;
   assign ramif.ramaddr = ccif.ramaddr;
 
   initial begin
+    int testnum;
+
+    $display("\n\n***** START OF TESTS *****\n");
+
     // initial reset
     nRST = 1'b0;
     #(PERIOD*2);
     nRST = 1'b1;
     #(PERIOD*2);
 
-    // set up test write signals
+    // TEST 1-40: write/read data to/from all addresses
+    testnum++;
     ccif.dREN = 2'b00;
     ccif.dWEN = 2'b01;
-    ccif.iREN = 2'b01;
-
-    ccif.iaddr = 32'd4;
-
+    ccif.iREN = 2'b00;
 
     // write data to all addresses
     for (int i=0; i <= ADDR_MAX; i=i+4) begin
@@ -47,7 +49,7 @@ module memory_control_tb;
       #(PERIOD*5);
     end
 
-    // set up read signals to verify the writes
+    // read signals to verify the writes
     ccif.dREN = 2'b01;
     ccif.dWEN = 2'b00;
     ccif.dstore = 0;
@@ -56,17 +58,21 @@ module memory_control_tb;
     // read back the data we wrote
     for (int i=0; i <= ADDR_MAX; i=i+4) begin
       ccif.daddr = i;
-      #(PERIOD*5);
+      #(PERIOD*10);
       if (ccif.dload[0] == i*16)
       begin
-        $display("Write and read verified at address %h. Data was: %h", i, ccif.dload[0]);
+        $display("TEST %2d passed", testnum);
       end else begin
-        $display("Write or read failed at address %h. Data was: %h but it should have been %h", i, ccif.dload[0], i*16);
+        $display("TEST %2d FAILED: Write or read failed at address %h. Data was: %h but it should have been %h", testnum, i, ccif.dload[0], i*16);
       end
     end
 
+    // output contents of RAM to file
     dump_memory();
 
+    // TEST 41:
+
+    $display("\n***** END OF TESTS *****\n\n");
     $finish;
   end
 
