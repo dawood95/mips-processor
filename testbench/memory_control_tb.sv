@@ -100,6 +100,7 @@ module memory_control_tb;
       $display("TEST %2d passed", testnum);
     else $error("TEST %2d FAILED: dwait was %d, should have been 1 and iwait was %d, should have been 0", testnum, ccif.dwait[0], ccif.iwait[0]);
 
+
     // TEST 4: test wait signals for data read
     testnum++;
     ccif.dREN = 2'b01;
@@ -109,6 +110,7 @@ module memory_control_tb;
     if (ccif.dwait[0] == 0 && ccif.iwait[0] == 1)
       $display("TEST %2d passed", testnum);
     else $error("TEST %2d FAILED: dwait was %d, should have been 0 and iwait was %d, should have been 1", testnum, ccif.dwait[0], ccif.iwait[0]);
+
 
     // TEST 5: test wait signals for data write
     testnum++;
@@ -120,11 +122,28 @@ module memory_control_tb;
       $display("TEST %2d passed", testnum);
     else $error("TEST %2d FAILED: dwait was %d, should have been 0 and iwait was %d, should have been 1", testnum, ccif.dwait[0], ccif.iwait[0]);
 
-    // QUESTION: Is it necessary to test for things like a dREN being
-    // asserted during an instruction read or vice versa?  Should the
-    // CPU be smart enough to watch the wait signals and only assert
-    // things when the wait signals say it can?  I believe my current
-    // combinational logic will fail for the case I just described.
+
+    // TEST 6: data and inst asserted at the same time - data takes priority
+    testnum++;
+
+    // In test 2, wrote "instr" DEADBEEF to addr 16
+    // Now write "data" FEEDFEED to addr 20
+    ccif.dREN = 2'b00;
+    ccif.dWEN = 2'b01;
+    ccif.iREN = 2'b00;
+    ccif.daddr = 20;
+    ccif.dstore = 32'hFEEDFEED;
+    #(PERIOD*5);
+
+    // Set both dREN and iREN high, should get instr DEADBEEF
+    ccif.dREN = 2'b01;
+    ccif.dWEN = 2'b00;
+    ccif.iREN = 2'b01;
+    #(PERIOD*5);
+    if (ccif.dload[0] == 32'hFEEDFEED)
+        $display("TEST %2d passed", testnum);
+    else $error("TEST %2d FAILED: read %h should have been %h", testnum, ccif.dload[0], ccif.dstore);
+
 
     $display("\n***** END OF TESTS *****\n\n");
     $finish;

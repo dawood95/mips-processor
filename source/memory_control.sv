@@ -35,9 +35,9 @@ module memory_control (
     ccif.ramWEN = ccif.dWEN[CPUID] && !(ccif.iREN[CPUID] || ccif.dREN[CPUID]);
 
     // referee ram addr based on which enables selected
-    if (ccif.iREN[CPUID] && !(ccif.dREN[CPUID] || ccif.dWEN[CPUID]))
-      ccif.ramaddr = ccif.iaddr[CPUID];
-    else ccif.ramaddr = ccif.daddr[CPUID];
+    if (ccif.dREN[CPUID] || ccif.dWEN[CPUID])
+      ccif.ramaddr = ccif.daddr[CPUID];
+    else ccif.ramaddr = ccif.iaddr[CPUID];
 
     // tell datapath to wait on instrs or data based on ramstate
     casez (ccif.ramstate)
