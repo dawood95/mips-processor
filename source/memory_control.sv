@@ -20,34 +20,37 @@ module memory_control (
   import cpu_types_pkg::*;
 
   // number of cpus for cc
-  parameter CPUS = 2;
+  parameter CPUS = 1;
+
+  // intermediate states
+  logic iwait, dwait, rWEN, rREN;
 
   always_comb
   begin
-    // an instruction is being fetched
-    if (ccif.iREN[CPUID] && ccif.ramstate == ACCESS) ccif.iwait = 0;
-    else ccif.iwait = 1;
-
-    // data is being fetched
-    if ((ccif.dREN[CPUID] || ccif.dWEN[CPUID]) && ccif.ramstate == ACCESS)
-      ccif.dwait = 0;
-    else ccif.dwait = 1;
-
-    // find the address being read or written
-    if (ccif.dREN[CPUID] || ccif.dWEN[CPUID])
-      ccif.ramaddr = ccif.daddr[CPUID];
-    else ccif.ramaddr = ccif.iaddr[CPUID];
-
-    // is the ram being read or written?
-    if (ccif.dREN[CPUID] || ccif.iREN[CPUID]) ccif.ramREN = 1;
-    else ccif.ramREN = 0;
-
+    iwait = (ccif.iREN[0] && ccif.ramstate == ACCESS) ? 0 : 1;
+    dwait = (ccif.dREN[0] || ccif.dWEN[0]) && ccif.ramstate == ACCESS ? 0 : 1;
+    ccif.iwait = iwait || !dwait;
+    ccif.dwait = dwait;
+    ccif.ramstore = ccif.dstore[0];
+    ccif.iload = ccif.ramload;
+    ccif.dload = ccif.ramload;
+    ccif.ramWEN = ccif.dWEN[0];
+    ccif.ramaddr = (ccif.dREN[0] || ccif.dWEN[0]) ? ccif.daddr[0] : ccif.iaddr[0];
+    ccif.ramREN = (ccif.dREN[0] || ccif.iREN[0]) && !ccif.dWEN[0] ? 1 : 0;
   end
 
+  // other assigns
+/*
+  assign ccif.iwait = (ccif.iREN[0] && ccif.ramstate == ACCESS) ? 0 : 1;
+  assign ccif.dwait = ((ccif.dREN[0] || ccif.dWEN[0]) && ccif.ramstate) == ACCESS ? 0 : 1;
+  assign ccif.ramaddr = (ccif.dREN[0] || ccif.dWEN[0]) ? ccif.daddr[0] : ccif.iaddr[0];
+  assign ccif.ramREN = (ccif.dREN[0] || ccif.iREN[0]) ? 1 : 0;
+
   // simply output these signals from the interface
-  assign ccif.ramstore = ccif.dstore[CPUID];
+  assign ccif.ramstore = ccif.dstore[0];
   assign ccif.iload = ccif.ramload;
   assign ccif.dload = ccif.ramload;
-  assign ccif.ramWEN = ccif.dWEN[CPUID];
+  assign ccif.ramWEN = ccif.dWEN[0];
+*/
 
 endmodule
