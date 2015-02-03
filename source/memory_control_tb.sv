@@ -81,6 +81,15 @@ program test(
 	repeat (4) @(posedge CLK);
 	$display("Writing data %h to address %h",ccif.dstore, ccif.daddr);
 	dump_memory;
+	ccif.dREN = 1'b1;
+	ccif.iREN = 1'b0;
+	ccif.dWEN = 1'b1;
+	ccif.daddr = 32'h00000004;
+	ccif.dstore = 32'hdeadb1ef;
+	$display("Data from address %h = %h",ccif.daddr,ccif.dload);
+	$display("Writing data %h to address %h",ccif.dstore, ccif.daddr);
+	repeat (4) @(posedge CLK);
+	dump_memory;
      end
 
 
