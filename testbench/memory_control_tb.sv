@@ -135,7 +135,7 @@ module memory_control_tb;
     ccif.dstore = 32'hFEEDFEED;
     #(PERIOD*5);
 
-    // Set both dREN and iREN high, should get instr DEADBEEF
+    // Set both dREN and iREN high, should get data FEEDFEED
     ccif.dREN = 2'b01;
     ccif.dWEN = 2'b00;
     ccif.iREN = 2'b01;
