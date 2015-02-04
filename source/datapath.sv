@@ -23,38 +23,28 @@ module datapath (
 
    register_file_if rfif();
    alu_if alif();
+   
    /***********************************
-    *
     * Local signals
-    * 
     ***********************************/
 
    // Instruction
-   word_t                    instr;
    j_t                      jinstr;
    i_t                      iinstr;
    r_t                      rinstr;
    
-   // PC Signals
-   logic 		     pc_en;
-   word_t                    pc;
-   word_t                    pc_offset;
-
    always_comb
      begin
-	pc_offset = 32'd4;
-	jinstr = instr;
-	iinstr = instr;
-	rinstr = instr;
+	jinstr = dpif.imemload;
+	iinstr = dpif.imemload;
+	rinstr = dpif.imemload;
      end
 
-
    
-
    /*****************************************
     * REGISTER FILE
     *****************************************/
-
+   
 `ifndef MAPPED
    register_file rf(CLK,nRST,rfif);
 `else
@@ -78,6 +68,8 @@ module datapath (
 	rfif.rsel2 = rinstr.rt;
 	if(rinstr.opcode == RTYPE)
 	  rfif.wsel = rinstr.rd;
+	else if(jinstr.opcode == JAL)
+	  rfif.wsel = 5'd31;
 	else
 	  rfif.wsel = rinstr.rt;
      end
@@ -101,54 +93,35 @@ module datapath (
 	   );
 `endif // !`ifndef MAPPED
 
+
    always_comb
      begin
-	alif.porta = rfif.rdat1;
-	rfif.wdat = alif.out;
-	if(op == RTYPE)
-	  begin
-	     alif.portb = rfif.rdat2; // Modify later
-	     casez(rinstr.funct)
-	       SLL:
-		 begin
-		    alif.op = ALU_SLL;
-		    alif.portb = rinstr.shamt; // Modify later
-		 end
-	       SRL:
-		 begin
-		    alif.op = ALU_SRL;
-		    alif.portb = rinstr.shamt; // Modify later
-		 end
-	       ADD:
-		 alif.op = ALU_ADD;
-	       ADDU:
-		 alif.op = ALU_ADD;
-	       SUB:
-		 alif.op = ALU_SUB;
-	       SUBU:
-		 alif.op = ALU_SUB;
-	       AND:
-		 alif.op = ALU_AND;
-	       OR:
-		 alif.op = ALU_OR;
-	       XOR:
-		 alif.op = ALU_XOR;
-	       NOR:
-		 alif.op = ALU_NOR;
-	       SLT:
-		 alif.op = ALU_SLT;
-	       SLTU:
-		 alif.op = ALU_SLTU;
-	       default:
-		 alif.op = ALU_SLL;
-	     endcase // case (instr[5:0])
-	  end // if (op == RTYPE)
+	if (iinstr.opcode == ADDIU || 
+	    iinstr.opcode == ADDI ||
+	    iinstr.opcode == LW ||
+	    iinstr.opcode == SLTI || 
+	    iinstr.opcode == SLTIU || 
+	    iinstr.opcode == SW)
+	  imm_ext = {{16{iinstr.imm[15]}},iinstr.imm};
+	else if(iinstr.opcode == LUI)
+	  imm_ext = {iinstr.imm,16'b0};
 	else
-	  begin
-	     alif.portb = rfif.data1;
-	     alif.op = ALU_AND;
-	  end // else: !if(op == RTYPE)
+	  imm_ext = {16'b0,iinstr.imm};
+
+	alif.porta = rfif.rdat1;
+
+	if (rinstr.opcode == RTYPE && ( rinstr.funct == ALU_SLL || rinstr.funct == ALU_SRL ))
+	  alif.portb = rinstr.shamt;
+	else if(rinstr.opcode == RTYPE)
+	  alif.portb = rfif.rdat2;
+	else if(iinstr.opcode == BEQ && iinstr.opcdoe == BNE)
+	  alif.portb = rfif.rdat2;
+	else
+	  alif.portb = imm_ext;
+	
      end
+
+   
    
    
    /*****************************************
