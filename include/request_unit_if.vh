@@ -14,7 +14,13 @@ interface request_unit_if;
 
   import cpu_types_pkg::*;
 
+  logic dREN, dWEN, iREN; // to cache
+  logic ihit, dhit, memwr, memread; // from control unit
 
+  modport request (
+    input ihit, dhit, memwr, memread,
+    output dREN, dWEN, iREN
+  );
 
 endinterface
 

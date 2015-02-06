@@ -2,9 +2,7 @@
   Everett Berry
   epberry@purdue.edu
 
-  interface for the internal peices of the datapath, including
-
-  alu, register_file, request_unit, control_unit, and pc
+  control unit interface - takes in instruction and spits out control signals
 */
 
 `ifndef CONTROL_UNIT_IF_VH
@@ -16,7 +14,30 @@ interface control_unit_if;
 
   import cpu_types_pkg::*;
 
-  // ports to alu
+  word_t instr;
+  aluop_t ALUop;
+
+  logic extOp, ALUsrc, lui, shift; // ALU related instructions
+  logic memwr, memread, memtoreg, regwr, regdst; // move data around
+  logic beq, bne, jumpi, jumpreg, jumpal; // jump and branch
+  logic [2:0] PCsrc; // several options for next addr
+  logic halt;
+
+  modport control (
+    input instr,
+    output extOp, ALUsrc, lui, shift,
+    memwr, memread, memtoreg, regwr, regdst,
+    beq, bne, jumpi, jumpreg, jumpal, halt,
+    output PCsrc
+  );
+
+  modport tb (
+    output instr,
+    input extOp, ALUsrc, lui, shift,
+    memwr, memread, memtoreg, regwr, regdst,
+    beq, bne, jumpi, jumpreg, jumpal, halt,
+    input PCsrc
+  );
 
 endinterface
 
