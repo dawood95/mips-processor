@@ -19,26 +19,23 @@ module request_unit(
 	     dRen <= 1'b0;
 	     dWen <= 1'b0;
 	  end
+	else if(halt)
+	  begin
+	     iRen <= 1'b0;
+	     dRen <= 1'b0;
+	     dWen <= 1'b0;
+	  end
+	else if(dHit)
+	  begin
+	     dRen <= 1'b0;
+	     dWen <= 1'b0;
+	  end
 	else
 	  begin
-	     if(halt)
-	       begin
-		  iRen <= 1'b0;
-		  dRen <= 1'b0;
-		  dWen <= 1'b0;
-	       end
-	     else if(dHit)
-	       begin
-		  dRen <= 1'b0;
-		  dWen <= 1'b0;
-	       end
-	     else
-	       begin
-		  dRen <= r_req;
-		  dWen <= w_req;
-	       end
-	  end // else: !if(!nRst)
+	     dRen <= r_req;
+	     dWen <= w_req;
+	  end
      end // always_ff @
-
+   
 endmodule // request_unit
 

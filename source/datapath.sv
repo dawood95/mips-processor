@@ -27,7 +27,7 @@ module datapath (
    j_t jinstr;
    r_t rinstr;
    word_t immExt, pc, pc_next;
-   logic 		     r_req, w_req, porta_sel, immExt_sel, wMemReg_sel, brEn;
+   logic 		     r_req, w_req, porta_sel, immExt_sel, wMemReg_sel, brEn, pcEn, halt;
    logic [1:0] 		     portb_sel, pc_sel, regW_sel;
    alu_if alif();
    register_file_if rfif();
@@ -69,13 +69,14 @@ module datapath (
        			     .memWEN(w_req), 
        			     .regWEN(rfif.WEN),
        			     .brEn(brEn),	
-			     .halt(dpif.halt)
+			     .halt(halt)
 			     );
    
    alu alu(alif);
 
    always_comb
      begin
+	instr = dpif.imemload;
 	immExt = (immExt_sel) ? {{16{iinstr.imm[15]}},iinstr.imm} : {16'b0,iinstr.imm} ;
 	alif.porta = (porta_sel) ? immExt : rfif.rdat1;
 	case(portb_sel)
@@ -89,6 +90,8 @@ module datapath (
 	  2'b01: rfif.wsel = rinstr.rt;
 	  2'b10: rfif.wsel = 5'd31;
 	endcase // case (regW_sel)
+	rfif.rsel1 = rinstr.rs;
+	rfif.rsel2 = rinstr.rt;
 	rfif.wdat = (wMemReg_sel) ? dpif.dmemload : alif.out;
 	dpif.dmemaddr = alif.out;
 	dpif.dmemstore = rfif.rdat2;
@@ -98,7 +101,7 @@ module datapath (
 	  2'b01: pc_next = rfif.rdat1;
 	  2'b10: pc_next = jinstr.addr<<2;
 	endcase
-	  
+	pcEn = ~dpif.dmemREN & ~dpif.dmemWEN;
      end
    
    //PC  
@@ -107,10 +110,17 @@ module datapath (
      begin
 	if(!nRST)
 	  pc <= PC_INIT;
-	else if(!dpif.halt)
+	else if(pcEn & !dpif.halt)
 	  pc <= pc_next;
      end
-   
+
+   always_ff @(posedge CLK, negedge nRST)
+     begin
+	if(!nRST)
+	  dpif.halt <= 1'b0;
+	else
+	  dpif.halt <= halt;
+     end
    
 endmodule // datapath
 

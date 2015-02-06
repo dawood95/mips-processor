@@ -75,7 +75,7 @@ module control_unit
 	//Memory/Register select for write
 	// 0 -> Register
 	// 1 -> Memory
-	wMemReg_sel = (iinstr.opcode == SW) ? 1 : 0;
+	wMemReg_sel = (iinstr.opcode == LW) ? 1 : 0;
 	//Reg wsel Select
 	//00 -> rd
 	//01 -> rt
