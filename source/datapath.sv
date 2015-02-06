@@ -27,8 +27,8 @@ module datapath (
    j_t jinstr;
    r_t rinstr;
    word_t immExt, pc, pc_next;
-   logic 		     r_req, w_req, porta_sel, immExt_sel, wMemReg_sel, brEn, pcEn, halt;
-   logic [1:0] 		     portb_sel, pc_sel, regW_sel;
+   logic 		     r_req, w_req, porta_sel, immExt_sel, brEn, pcEn, halt;
+   logic [1:0] 		     portb_sel, pc_sel, wMemReg_sel, regW_sel;
    alu_if alif();
    register_file_if rfif();
    
@@ -92,14 +92,18 @@ module datapath (
 	endcase // case (regW_sel)
 	rfif.rsel1 = rinstr.rs;
 	rfif.rsel2 = rinstr.rt;
-	rfif.wdat = (wMemReg_sel) ? dpif.dmemload : alif.out;
+	case(wMemReg_sel)
+	  2'b00,2'b11 : rfif.wdat = alif.out;
+	  2'b01: rfif.wdat = dpif.dmemload;
+	  2'b10: rfif.wdat = pc+4;
+	endcase
 	dpif.dmemaddr = alif.out;
 	dpif.dmemstore = rfif.rdat2;
 	dpif.imemaddr = pc;
 	case(pc_sel)
 	  2'b00, 2'b11: pc_next = pc + 4 + ((brEn) ? immExt<<2 : 32'd0);
 	  2'b01: pc_next = rfif.rdat1;
-	  2'b10: pc_next = jinstr.addr<<2;
+	  2'b10: pc_next = {pc[31:28],jinstr.addr,2'b00};
 	endcase
 	pcEn = ~dpif.dmemREN & ~dpif.dmemWEN;
      end

@@ -13,8 +13,8 @@ module control_unit
     input 	       word_t instr,
     input logic        zf, of,
     output 	       aluop_t aluOp,
-    output logic [1:0] portb_sel, pc_sel, regW_sel,
-    output logic       porta_sel, immExt_sel, wMemReg_sel, memREN, memWEN, regWEN, brEn, halt
+    output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
+    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, brEn, halt
     );
 
    i_t iinstr;
@@ -45,7 +45,7 @@ module control_unit
 	// 0 -> zero
 	// 1 -> sign
 	case(iinstr.opcode)
-	  ADDIU, ADDI, LW, SLTI, SLTIU, SW: immExt_sel = 1'b1;
+	  ADDIU, ADDI, LW, SLTI, SLTIU, SW, BNE, BEQ: immExt_sel = 1'b1;
 	  default: immExt_sel = 1'b0;
 	endcase // case (iinstr.opcode)
 	//PortB Select
@@ -72,10 +72,16 @@ module control_unit
 	// 0 -> rs
 	// 1 -> imm
 	porta_sel = (iinstr.opcode == LUI) ? 1 : 0;
-	//Memory/Register select for write
-	// 0 -> Register
-	// 1 -> Memory
-	wMemReg_sel = (iinstr.opcode == LW) ? 1 : 0;
+	//select for reg write
+	// 00 -> alu
+	// 01 -> Memory
+	// 10 -> Pc
+	if(iinstr.opcode == LW)
+	  wMemReg_sel = 2'b01;
+	else if(iinstr.opcode == JAL)
+	  wMemReg_sel = 2'b10;
+	else
+	  wMemReg_sel = 2'b00;
 	//Reg wsel Select
 	//00 -> rd
 	//01 -> rt
