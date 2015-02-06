@@ -19,7 +19,7 @@ interface control_unit_if;
 
   logic ext, alusrc, lui, shift; // ALU related instructions
   logic memwr, memread, memtoreg, regwr, regdst; // move data around
-  logic branch, jumpi, jumpreg, jumpal; // jump and branch
+  logic branch, bne, jumpi, jumpreg, jumpal; // jump and branch
   logic [2:0] PCsrc; // several options for next addr
   logic halt;
 
@@ -27,11 +27,13 @@ interface control_unit_if;
     input instr,
     output ext, alusrc, lui, shift,
     memwr, memread, memtoreg, regwr, regdst,
-    beq, bne, jumpi, jumpreg, jumpal, halt,
+    branch, bne, jumpi, jumpreg, jumpal, halt,
     output PCsrc
   );
 
 endinterface
+
+// PC = ihit & !dhit & !halt
 
 `endif // DATAPATH_IF_VH
 
@@ -87,4 +89,4 @@ default: cuif.aluop = aluop_t'('1);
 endcase
 end
 
-/*
+*/
