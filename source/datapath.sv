@@ -45,7 +45,7 @@ module datapath (
   j_t jtype;
   word_t extender, pcplus, jumpaddr, branchaddr, jraddr, luihelp;
   word_t pc, pcnext; // might also need pca and pcb
-  logic halt, haltnext; // latch halt
+  logic halt, haltnext, pcEN; // latch halt
   regbits_t rt_or_31;
   // logic pcacontrol;
 
@@ -54,7 +54,7 @@ module datapath (
   begin
     if (!nRST)
       pc <= PC_INIT;
-    else if (!halt) // PC = ihit & !dhit & !halt
+    else if (pcEN) // if (!halt && !dpif.dhit) // PC = ihit & !dhit & !halt
       pc <= pcnext ;
   end
 
@@ -83,12 +83,18 @@ module datapath (
     branchaddr = ($signed(luihelp << 2)) + pcplus;
     jraddr = rfif.rdat1;
 
-    pcnext = !cuif.halt & dpif.ihit & !dpif.dhit ? pcnext + 4 : pc;
-    haltnext = cuif.halt;
+    // pc computation
+    pcnext = pcEN ? pc + 4 : pc;
+
+
+    pcEN = nRST & !cuif.halt & dpif.ihit & !dpif.dhit;
     // pcacontrol = (cuif.branch & (cuif.bne ^ aluif.zero));
     // pca = pcacontrol ? branchaddr : pca;
     // pcb = cuif.jump ? jumpaddr : pca;
     // pcnext = cuif.jumpreg ? jraddr : pcb;
+
+
+    haltnext = cuif.halt;
   end
 
   // module connections
