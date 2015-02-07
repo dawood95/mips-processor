@@ -118,7 +118,7 @@ module control_unit (
       cuif.aluop = ALU_SLTU;
     end else if (opcode == SW)
     begin
-      cuif.memwrite = 1'b1;
+      cuif.memwr = 1'b1;
       cuif.regwr = 1'b0;
       cuif.alusrc = 1'b1;
       cuif.aluop = ALU_ADD;

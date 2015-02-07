@@ -33,6 +33,7 @@ endinterface
 `endif //REGISTER_FILE_IF_VH
 
 
+/*
 module datapath (
 input logic CLK, nRST,
 datapath_cache_if.dp dpif
@@ -72,7 +73,9 @@ assign rfif.rsel1 = rtype.rs;
 assign rfif.rsel2 = rtype.rt;
 assign rfif.wdat = cuif.memtoreg ? dpif.dmemload : aluif.out;
 // control unit inputs
-assign cuif.instruction = dpif.imemload;
+assign cuif.instruction = dpif
+
+  parameter PC_INIT = 0;.imemload;
 // request unit inputs
 assign ruif.halt = cuif.halt;
 assign ruif.memread = cuif.memread;
@@ -100,4 +103,5 @@ assign pcb = cuif.jump ? jumpaddr : pca;
 assign pcnext = cuif.jr ? jraddr : pcb;
 endmodule
 
+*/
 

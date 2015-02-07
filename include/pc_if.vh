@@ -14,21 +14,14 @@ interface pc_if;
 
   import cpu_types_pkg::*;
 
-  word_t addr;
+  word_t addr, next_addr;
+  logic pc_pause;
 
-  logic [25:0] jumpi_addr;
-  logic [15:0] branch_addr;
-  logic halt;
-
-  modport pc (
-    input jumpi_addr, branch_addr, halt,
+  modport prog (
+    input next_addr, pc_pause,
     output addr
   );
 
-  modport tb (
-    output jumpi_addr, branch_addr, halt,
-    input addr
-  );
 
 endinterface
 

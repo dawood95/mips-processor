@@ -15,6 +15,7 @@
 `include "request_unit_if.vh"
 // `include "pc_if.vh"
 
+/*
 module datapath (
   input logic CLK, nRST,
   datapath_cache_if.dp dpif
@@ -27,3 +28,6 @@ module datapath (
 
 
 endmodule
+
+
+*/

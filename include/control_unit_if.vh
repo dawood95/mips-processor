@@ -15,19 +15,19 @@ interface control_unit_if;
   import cpu_types_pkg::*;
 
   word_t instr;
-  aluop_t ALUop;
+  aluop_t aluop;
 
   logic ext, alusrc, lui, shift; // ALU related instructions
   logic memwr, memread, memtoreg, regwr, regdst; // move data around
-  logic branch, bne, jumpi, jumpreg, jumpal; // jump and branch
+  logic branch, bne, jump, jumpreg, jumpal; // jump and branch
   logic [2:0] PCsrc; // several options for next addr
   logic halt;
 
   modport control (
     input instr,
-    output ext, alusrc, lui, shift,
+    output ext, alusrc, lui, shift, aluop,
     memwr, memread, memtoreg, regwr, regdst,
-    branch, bne, jumpi, jumpreg, jumpal, halt,
+    branch, bne, jump, jumpreg, jumpal, halt,
     output PCsrc
   );
 
