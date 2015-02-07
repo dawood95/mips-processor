@@ -37,7 +37,7 @@ module datapath (
   register_file register(CLK, nRST, rfif);
   control_unit control(CLK, nRST, cuif);
   request_unit request(CLK, nRST, ruif);
-  alu alu2(aluif);
+  alu alu(aluif);
 
   // local vars
   r_t rtype;
@@ -55,7 +55,7 @@ module datapath (
     if (!nRST)
       pc <= PC_INIT;
     else if (!halt) // PC = ihit & !dhit & !halt
-      pc <= pcnext;
+      pc <= pcnext ;
   end
 
   // latched halt
@@ -79,11 +79,11 @@ module datapath (
     extender = cuif.ext ? $signed(itype.imm) : $unsigned(itype.imm);
     luihelp = cuif.lui ? {extender[15:0], extender[31:16]} : extender;
     // pcplus = pcif.addr + 4;
-    jumpaddr = {pcif.addr[31:28], jtype.addr, 2'b00};
+    // jumpaddr = {pcif.addr[31:28], jtype.addr, 2'b00};
     branchaddr = ($signed(luihelp << 2)) + pcplus;
     jraddr = rfif.rdat1;
 
-    pcnext = pcnext + 4;
+    pcnext = !cuif.halt & dpif.ihit & !dpif.dhit ? pcnext + 4 : pc;
     haltnext = cuif.halt;
     // pcacontrol = (cuif.branch & (cuif.bne ^ aluif.zero));
     // pca = pcacontrol ? branchaddr : pca;
