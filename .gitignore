@@ -13,3 +13,4 @@ README
 *.hex
 *.ver
 .DS_Store
+*.do
