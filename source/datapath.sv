@@ -125,6 +125,7 @@ module datapath (
     // pcif.pc_pause = ~dpif.ihit | cuif.halt;
     dpif.imemaddr = pc;
     dpif.dmemaddr = aluif.outPort;
+    dpif.dmemstore = rfif.rdat2;
 
     // alu
     aluif.opcode = cuif.aluop;
