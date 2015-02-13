@@ -51,8 +51,8 @@ module datapath (
 			     .CLK(CLK), 
 			     .nRST(nRST),
 			     .halt(dpif.halt),
-			     .r_req(mem.memRen),
-			     .w_req(mem.memWen),
+			     .r_req(exec.memRen),
+			     .w_req(exec.memWen),
 			     .iHit(dpif.ihit),
 			     .dHit(dpif.dhit),
 			     .iRen(dpif.imemREN),
@@ -89,15 +89,18 @@ module datapath (
    always_ff @(posedge CLK, negedge nRST)
      begin : RequestDecodeFF
        if(!nRST)
+	 begin
 	    decode.instr <= 0;
+	    decode.pc <= PC_INIT;
+	 end
        else if(pcEn)
 	 begin
 	    if(ifde_en) //Inst Decode ff en
 	      decode.instr <= ifetch.instr;
 	    else
 	      decode.instr <= 0;
+	    decode.pc <= ifetch.pc;	
 	 end
-	decode.pc <= ifetch.pc;
      end // block: RequestDecodeFF
    
    /***********************************************************************
@@ -169,6 +172,8 @@ module datapath (
 	     exec.memWen <= 0;
 	     exec.regWen <= 0;
 	     exec.br <= 0;
+	     exec.pc <= 0;
+	     exec.dHalt <= 0;
 	  end
 	else if(pcEn)
 	  begin
@@ -186,16 +191,15 @@ module datapath (
 		  exec.regWen <= 0;
 		  exec.br <= 0;
 	       end
+	     exec.pc <= decode.pc;
+	     exec.porta <= decode.porta;
+	     exec.portb <= decode.portb;
+	     exec.aluOp <= decode.aluOp;
+	     exec.regDataSel <= decode.regDataSel;
+	     exec.regDest <= decode.regDest;
+	     exec.regData2 <= decode.regData2;
+	     exec.dHalt <= decode.halt;
 	  end // else: !if(!nRST)
-	//Doesn't need to be reset. Cannot affect anything really
-	exec.pc <= decode.pc;
-	exec.porta <= decode.porta;
-	exec.portb <= decode.portb;
-	exec.aluOp <= decode.aluOp;
-	exec.regDataSel <= decode.regDataSel;
-	exec.regDest <= decode.regDest;
-	exec.regData2 <= decode.regData2;
-	exec.dHalt <= decode.halt;
      end // block: DecodeExecuteFF
 
    /***********************************************************************
@@ -207,8 +211,12 @@ module datapath (
    always_comb
      begin
 	exec.aluOut = alif.out;
-	exec.eHalt = exec.dHalt || ((exec.aluOp == ADD || exec.aluOp == SUB) && alif.of);
+	exec.eHalt = exec.dHalt || ((exec.aluOp == ALU_ADD || exec.aluOp == ALU_SUB) && alif.of);
+	alif.porta = exec.porta;
+	alif.portb = exec.portb;
+	alif.op = exec.aluOp;
      end
+   
    
    /***********************************************************************
     ***********************************************************************/
@@ -220,19 +228,26 @@ module datapath (
 	     mem.memRen <= 0;
 	     mem.memWen <= 0;
 	     mem.regWen <= 0;
+	     mem.aluOut <= 0;
+	     mem.regData2 <= 0;
+	     mem.halt <= 0;
+	     mem.pc <= PC_INIT;
+	     mem.regDataSel <= 0;
+	     mem.regDest <= 0;
 	  end
 	else if(pcEn)
 	  begin
 	     mem.memRen <= exec.memRen;
 	     mem.memWen <= exec.memWen;
 	     mem.regWen <= exec.regWen;
+	     mem.aluOut <= exec.aluOut;
+	     mem.regData2 <= exec.regData2;
+	     mem.halt <= exec.eHalt;
+	     mem.pc <= exec.pc;
+	     mem.regDataSel <= exec.regDataSel;
+	     mem.regDest <= exec.regDest;
 	  end // else: !if(!nRST)
-	mem.pc <= exec.pc;
-	mem.aluOut <= exec.aluOut;
-	mem.regDataSel <= exec.regDataSel;
-	mem.regDest <= exec.regDest;
-	mem.regData2 <= exec.regData2;
-	mem.halt <= exec.eHalt;
+
      end // block: ExecuteMemoryFF
 
    
@@ -255,16 +270,22 @@ module datapath (
 	if(!nRST)
 	  begin
 	     regw.regWen <= 0;
+	     regw.memData <= 0;
+	     regw.aluData <= 0;
+	     regw.regDataSel <= 0;
+	     regw.regDest <= 0;
+	     regw.pc <= PC_INIT; //Check this
 	  end
 	else if(pcEn)
 	  begin
 	     regw.regWen <= mem.regWen;
+	     regw.regDataSel <= mem.regDataSel;
+	     regw.aluData <= mem.aluOut;
+	     regw.regDest <= mem.regDest;
+	     regw.pc <= mem.pc; //Check this
 	  end // else: !if(!nRST)
-	regw.pc <= mem.pc;
-	regw.memData <= mem.memData;
-	regw.aluData <= mem.aluOut;
-	regw.regDataSel <= mem.regDataSel;
-	regw.regDest <= mem.regDest;
+	else if(dpif.dmemREN & dpif.dhit)
+	     regw.memData <= mem.memData;
      end // block: MemoryRegisterwFF
    
    /***********************************************************************
@@ -280,7 +301,6 @@ module datapath (
 	  2'b10: regw.regData = regw.pc;
 	endcase // case (regw.regDataSel_in)
      end
-
    /***********************************************************************
     ***********************************************************************/
 
@@ -294,9 +314,6 @@ module datapath (
 
    always_comb
      begin
-	pcEn = dpif.ihit & !dpif.halt & ~dpif.dmemREN & ~dpif.dmemWEN;
+	pcEn = dpif.ihit & !dpif.halt & ((~dpif.dmemREN & ~dpif.dmemWEN) | dpif.dhit);
      end
 endmodule // datapath
-
-
-
