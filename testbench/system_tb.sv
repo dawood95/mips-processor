@@ -1,11 +1,11 @@
 /*
- Eric Villasenor
- evillase@gmail.com
+  Eric Villasenor
+  evillase@gmail.com
 
- system test bench, for connected processor (datapath+cache)
- and memory (ram).
+  system test bench, for connected processor (datapath+cache)
+  and memory (ram).
 
- */
+*/
 
 // interface
 `include "system_if.vh"
@@ -20,23 +20,23 @@ module system_tb;
   // clock period
   parameter PERIOD = 20;
 
-   // signals
-   logic CLK = 1, nRST;
+  // signals
+  logic CLK = 1, nRST;
 
-   // clock
-   always #(PERIOD/2) CLK++;
+  // clock
+  always #(PERIOD/2) CLK++;
 
-   // interface
-   system_if syif();
+  // interface
+  system_if syif();
 
-   // test program
-   test                                PROG (CLK,nRST,syif);
+  // test program
+  test                                PROG (CLK,nRST,syif);
 
-   // dut
+  // dut
 `ifndef MAPPED
-   system                              DUT (CLK,nRST,syif);
+  system                              DUT (CLK,nRST,syif);
 `else
-   system                              DUT (,,,,//for altera debug ports
+  system                              DUT (,,,,//for altera debug ports
     CLK,
     nRST,
     syif.halt,
@@ -51,7 +51,6 @@ module system_tb;
 endmodule
 
 program test(input logic CLK, output logic nRST, system_if.tb syif);
-
   // import word type
   import cpu_types_pkg::word_t;
 
@@ -124,4 +123,3 @@ program test(input logic CLK, output logic nRST, system_if.tb syif);
     end
   endtask
 endprogram
-   
