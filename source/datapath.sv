@@ -105,7 +105,6 @@ module datapath (
     ***********************************************************************/
 
    control_unit control_unit(.instr(decode.instr),
-			     .of(exec.of),
 	       		     .aluOp(decode.aluOp), 
 			     .porta_sel(porta_sel),      			     
 			     .portb_sel(portb_sel),
@@ -117,7 +116,7 @@ module datapath (
        			     .memWEN(decode.memWen), 
        			     .regWEN(decode.regWen),
        			     .br(decode.br),	
-			     .halt(halt)
+			     .halt(decode.halt)
 			     );
 
    register_file reg_file( CLK, nRST, rfif);
@@ -196,6 +195,7 @@ module datapath (
 	exec.regDataSel <= decode.regDataSel;
 	exec.regDest <= decode.regDest;
 	exec.regData2 <= decode.regData2;
+	exec.dHalt <= decode.halt;
      end // block: DecodeExecuteFF
 
    /***********************************************************************
@@ -207,7 +207,7 @@ module datapath (
    always_comb
      begin
 	exec.aluOut = alif.out;
-	exec.of = alif.of;
+	exec.eHalt = exec.dHalt || ((exec.aluOp == ADD || exec.aluOp == SUB) && alif.of);
      end
    
    /***********************************************************************
@@ -232,6 +232,7 @@ module datapath (
 	mem.regDataSel <= exec.regDataSel;
 	mem.regDest <= exec.regDest;
 	mem.regData2 <= exec.regData2;
+	mem.halt <= exec.eHalt;
      end // block: ExecuteMemoryFF
 
    
@@ -287,7 +288,7 @@ module datapath (
      begin
 	if(!nRST)
 	  dpif.halt <= 1'b0;
-	else if(halt)
+	else if(mem.halt)
 	  dpif.halt <= 1'b1;
      end
 

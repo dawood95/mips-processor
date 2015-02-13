@@ -11,7 +11,6 @@ module control_unit
   import cpu_types_pkg::*;
    (
     input 	       word_t instr,
-    input logic        of,
     output 	       aluop_t aluOp,
     output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
     output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, br, halt
@@ -32,15 +31,11 @@ module control_unit
    always_comb
      begin
 	//Halt
-	if(iinstr.opcode == HALT ||
-	   (rinstr.opcode == RTYPE && 
-	    (rinstr.funct == ADD || 
-	     rinstr.funct == SUB) && 
-	    of) ||
-	   (iinstr.opcode == ADDI && of))
+	if(iinstr.opcode == HALT)
 	  halt = 1'b1;
 	else
 	  halt = 1'b0;
+	
 	//Immediate Extension Select
 	// 0 -> zero
 	// 1 -> sign
@@ -93,9 +88,10 @@ module control_unit
 	else
 	  regW_sel = 2'b01;
 	//PC Select
-	// 00 -> PC+4 / PC+4+branch
+	// 00 -> PC+4 
 	// 01 -> Register
 	// 10 -> Jump
+	// 11 -> branch
 	if(iinstr.opcode == JAL || iinstr.opcode == J)
 	  pc_sel = 2'b10;
 	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)

@@ -44,6 +44,8 @@ package pipeline_if;
       logic [1:0] regDataSel; 
       regbits_t regDest;
       logic 	  regWen;
+      //Halt
+      logic 	  halt;
    } decode_t;
 
    //Execute
@@ -57,7 +59,6 @@ package pipeline_if;
       word_t portb;
       word_t aluOut;
       word_t regData2; 
-      logic 	  of;
       //Memory
       logic 	  memRen;
       logic 	  memWen;
@@ -65,6 +66,9 @@ package pipeline_if;
       logic [1:0] regDataSel; 
       regbits_t regDest;
       logic 	  regWen;
+      //Halt
+      logic 	  dHalt;
+      logic 	  eHalt;
    } exec_t;
 
    //Data Read Write 
@@ -82,6 +86,8 @@ package pipeline_if;
       regbits_t regDest;
       logic 	  regWen;
       word_t 	  memData;
+      //halt
+      logic 	  halt;
    } mem_t;
 
    //Register Read Write
