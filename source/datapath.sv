@@ -47,7 +47,7 @@ module datapath (
     *                       Instruction and Fetch                         *
     ***********************************************************************/
    
-   request_unit request_unit(
+   /*request_unit request_unit(
 			     .CLK(CLK), 
 			     .nRST(nRST),
 			     .halt(dpif.halt),
@@ -58,7 +58,7 @@ module datapath (
 			     .iRen(dpif.imemREN),
 			     .dRen(dpif.dmemREN),
 			     .dWen(dpif.dmemWEN)
-			     );
+			     );*/
    
    always_comb
      begin
@@ -70,7 +70,7 @@ module datapath (
 	endcase // case (pc_sel)
 	ifetch.instr = dpif.imemload;
 	dpif.imemaddr = ifetch.imemAddr;
-	ifde_en = 1'b1;
+	ifde_en = !mem.memRen & !mem.memWen; // <-
 	npc = ifetch.imemAddr + 4;
 	ifetch.pc = npc;
      end
@@ -79,7 +79,7 @@ module datapath (
      begin
 	if(!nRST)
 	  npc_ff <= PC_INIT;
-	else if(pcEn)
+	else if(pcEn & ifde_en)
 	  npc_ff <= npc;
      end
    
@@ -283,9 +283,8 @@ module datapath (
 	     regw.aluData <= mem.aluOut;
 	     regw.regDest <= mem.regDest;
 	     regw.pc <= mem.pc; //Check this
-	  end // else: !if(!nRST)
-	else if(dpif.dmemREN & dpif.dhit)
 	     regw.memData <= mem.memData;
+	  end // else: !if(!nRST)
      end // block: MemoryRegisterwFF
    
    /***********************************************************************
@@ -314,6 +313,9 @@ module datapath (
 
    always_comb
      begin
-	pcEn = dpif.ihit & !dpif.halt & ((~dpif.dmemREN & ~dpif.dmemWEN) | dpif.dhit);
+	dpif.imemREN = ~mem.halt;
+	dpif.dmemWEN = mem.memWen;
+	dpif.dmemREN = mem.memRen;
+	pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt;
      end
 endmodule // datapath
