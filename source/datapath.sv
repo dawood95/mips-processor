@@ -26,7 +26,7 @@ module datapath (
    //Interfaces 
    alu_if alif();
    register_file_if rfif();
-   ifetch_t ifetech;
+   ifetch_t ifetch;
    decode_t decode;
    exec_t exec;
    mem_t mem;
