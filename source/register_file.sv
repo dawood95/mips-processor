@@ -17,7 +17,7 @@ module register_file
    
    word_t register_f[31:0];
    
-   always_ff @(posedge CLK or negedge nRST)
+   always_ff @(negedge CLK or negedge nRST)
      begin
 	if(!nRST)
 	  begin
