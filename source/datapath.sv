@@ -10,6 +10,7 @@
 `include "register_file_if.vh"
 `include "alu_if.vh"
 `include "cpu_types_pkg.vh"
+`include "pipeline_if.vh"
 
 module datapath (
 		 input logic CLK, nRST,
@@ -17,115 +18,283 @@ module datapath (
 		 );
    // import types
    import cpu_types_pkg::*;
+   import pipeline_if::*;
 
    // pc init
    parameter PC_INIT = 0;
 
-   // Local variables
-   word_t instr;
+   //Interfaces 
+   alu_if alif();
+   register_file_if rfif();
+   ifetch_t ifetech;
+   decode_t decode;
+   exec_t exec;
+   mem_t mem;
+   regw_t regw;
+
+   //Local signals
+   
+   word_t npc, npc_ff, immExt;
+   logic 		     pcEn, ifde_en, deex_en, porta_sel, immExt_sel, halt;
+   logic [1:0] 		     portb_sel, regW_sel;
+   
    i_t iinstr;
    j_t jinstr;
    r_t rinstr;
-   word_t immExt, pc, pc_next;
-   logic 		     r_req, w_req, porta_sel, immExt_sel, brEn, pcEn, halt;
-   logic [1:0] 		     portb_sel, pc_sel, wMemReg_sel, regW_sel;
-   alu_if alif();
-   register_file_if rfif();
    
+  
+   /***********************************************************************
+    *                       Instruction and Fetch                         *
+    ***********************************************************************/
+   
+   request_unit request_unit(
+			     .CLK(CLK), 
+			     .nRST(nRST),
+			     .halt(dpif.halt),
+			     .r_req(mem.memRen),
+			     .w_req(mem.memWen),
+			     .iHit(dpif.ihit),
+			     .dHit(dpif.dhit),
+			     .iRen(dpif.imemREN),
+			     .dRen(dpif.dmemREN),
+			     .dWen(dpif.dmemWEN)
+			     );
    
    always_comb
      begin
-	// Instruction type cast
-	iinstr = i_t'(instr);
-	jinstr = j_t'(instr);
-	rinstr = r_t'(instr);
+	case(decode.pc_sel)
+	  2'b00: ifetch.imemAddr = npc_ff;
+	  2'b01: ifetch.imemAddr = decode.regData1;
+	  2'b10: ifetch.imemAddr = decode.jAddr;
+	  2'b11: ifetch.imemAddr = decode.brAddr;
+	endcase // case (pc_sel)
+	ifetch.instr = dpif.imemload;
+	dpif.imemaddr = ifetch.imemAddr;
+	ifde_en = 1'b1;
+	npc = ifetch.imemAddr + 4;
+	ifetch.pc = npc;
      end
+   
+   always_ff @(posedge CLK, negedge nRST)
+     begin
+	if(!nRST)
+	  npc_ff <= PC_INIT;
+	else if(pcEn)
+	  npc_ff <= npc;
+     end
+   
+   /***********************************************************************
+    ***********************************************************************/
+   
+   always_ff @(posedge CLK, negedge nRST)
+     begin : RequestDecodeFF
+       if(!nRST)
+	    decode.instr <= 0;
+       else if(pcEn)
+	 begin
+	    if(ifde_en) //Inst Decode ff en
+	      decode.instr <= ifetch.instr;
+	    else
+	      decode.instr <= 0;
+	 end
+	decode.pc <= ifetch.pc;
+     end // block: RequestDecodeFF
+   
+   /***********************************************************************
+    *                               Decode                                *
+    ***********************************************************************/
 
-   
-   
-   register_file reg_file( CLK, nRST, rfif);
-   request_unit req_unit(.CLK(CLK), 
-			 .nRST(nRST),
-			 .halt(dpif.halt),
-			 .r_req(r_req),
-			 .w_req(w_req),
-			 .iHit(dpif.ihit),
-			 .dHit(dpif.dhit),
-			 .iRen(dpif.imemREN),
-			 .dRen(dpif.dmemREN),
-			 .dWen(dpif.dmemWEN)
-			  );
-   control_unit control_unit(.instr(instr),
-			     .zf(alif.zf),
-		       	     .of(alif.of),
-	       		     .aluOp(alif.op),
-       			     .portb_sel(portb_sel),
-       			     .porta_sel(porta_sel),
+   control_unit control_unit(.instr(decode.instr),
+			     .of(exec.of),
+	       		     .aluOp(decode.aluOp), 
+			     .porta_sel(porta_sel),      			     
+			     .portb_sel(portb_sel),
        			     .immExt_sel(immExt_sel), 
-       			     .pc_sel(pc_sel), 
+       			     .pc_sel(decode.pc_sel), 
        			     .regW_sel(regW_sel),
-       			     .wMemReg_sel(wMemReg_sel), 
-       			     .memREN(r_req), 
-       			     .memWEN(w_req), 
-       			     .regWEN(rfif.WEN),
-       			     .brEn(brEn),	
+       			     .wMemReg_sel(decode.regDataSel), 
+       			     .memREN(decode.memRen), 
+       			     .memWEN(decode.memWen), 
+       			     .regWEN(decode.regWen),
+       			     .br(decode.br),	
 			     .halt(halt)
 			     );
+
+   register_file reg_file( CLK, nRST, rfif);
+
+   always_comb
+     begin
+	// Instruction type cast
+	iinstr = i_t'(decode.instr);
+	jinstr = j_t'(decode.instr);
+	rinstr = r_t'(decode.instr);
+     end
    
+   always_comb
+     begin
+	immExt = (immExt_sel) ? {{16{iinstr.imm[15]}},iinstr.imm} : {16'b0,iinstr.imm} ;
+	//ALU
+	decode.porta = (porta_sel) ? immExt : rfif.rdat1;
+	case(portb_sel)
+	  2'b00: decode.portb = rfif.rdat2;
+	  2'b01: decode.portb = rinstr.shamt;
+	  2'b10: decode.portb = immExt;
+	  2'b11: decode.portb = 32'd16;
+	endcase // case (portb_sel)
+	//Register File
+	rfif.rsel1 = rinstr.rs;
+	rfif.rsel2 = rinstr.rt;
+	rfif.wsel = regw.regDest;
+	rfif.wdat = regw.regData;
+	rfif.WEN = regw.regWen;
+	case(regW_sel)
+	  2'b00, 2'b11: decode.regDest = rinstr.rd;
+	  2'b01: decode.regDest = rinstr.rt;
+	  2'b10: decode.regDest = 5'd31;
+	endcase // case (regW_sel)
+	decode.brAddr = decode.pc + (immExt << 2);
+	decode.jAddr = {decode.pc[31:28],jinstr.addr,2'b00};
+	decode.regData1 = rfif.rdat1;
+	decode.regData2 = rfif.rdat2;
+	deex_en = 1'b1;
+     end
+
+   /***********************************************************************
+    ***********************************************************************/
+
+   always_ff @(posedge CLK, negedge nRST)
+     begin : DecodeExecuteFF
+	if(!nRST)
+	  begin
+	     exec.memRen <= 0;
+	     exec.memWen <= 0;
+	     exec.regWen <= 0;
+	     exec.br <= 0;
+	  end
+	else if(pcEn)
+	  begin
+	     if(deex_en)
+	       begin
+		  exec.memRen <= decode.memRen;
+		  exec.memWen <= decode.memWen;
+		  exec.regWen <= decode.regWen;
+		  exec.br <= decode.br;
+	       end
+	     else
+	       begin
+		  exec.memRen <= 0;
+		  exec.memWen <= 0;
+		  exec.regWen <= 0;
+		  exec.br <= 0;
+	       end
+	  end // else: !if(!nRST)
+	//Doesn't need to be reset. Cannot affect anything really
+	exec.pc <= decode.pc;
+	exec.porta <= decode.porta;
+	exec.portb <= decode.portb;
+	exec.aluOp <= decode.aluOp;
+	exec.regDataSel <= decode.regDataSel;
+	exec.regDest <= decode.regDest;
+	exec.regData2 <= decode.regData2;
+     end // block: DecodeExecuteFF
+
+   /***********************************************************************
+    *                               Execute                               *
+    ***********************************************************************/
+
    alu alu(alif);
 
    always_comb
      begin
-	instr = dpif.imemload;
-	immExt = (immExt_sel) ? {{16{iinstr.imm[15]}},iinstr.imm} : {16'b0,iinstr.imm} ;
-	alif.porta = (porta_sel) ? immExt : rfif.rdat1;
-	case(portb_sel)
-	  2'b00: alif.portb = rfif.rdat2;
-	  2'b01: alif.portb = rinstr.shamt;
-	  2'b10: alif.portb = immExt;
-	  2'b11: alif.portb = 32'd16;
-	endcase // case (portb_sel)
-	case(regW_sel)
-	  2'b00, 2'b11: rfif.wsel = rinstr.rd;
-	  2'b01: rfif.wsel = rinstr.rt;
-	  2'b10: rfif.wsel = 5'd31;
-	endcase // case (regW_sel)
-	rfif.rsel1 = rinstr.rs;
-	rfif.rsel2 = rinstr.rt;
-	case(wMemReg_sel)
-	  2'b00,2'b11 : rfif.wdat = alif.out;
-	  2'b01: rfif.wdat = dpif.dmemload;
-	  2'b10: rfif.wdat = pc+4;
-	endcase
-	dpif.dmemaddr = alif.out;
-	dpif.dmemstore = rfif.rdat2;
-	dpif.imemaddr = pc;
-	case(pc_sel)
-	  2'b00, 2'b11: pc_next = pc + 4 + ((brEn) ? immExt<<2 : 32'd0);
-	  2'b01: pc_next = rfif.rdat1;
-	  2'b10: pc_next = {pc[31:28],jinstr.addr,2'b00};
-	endcase
-	pcEn = ~dpif.dmemREN & ~dpif.dmemWEN;
+	exec.aluOut = alif.out;
+	exec.of = alif.of;
      end
    
-   //PC  
+   /***********************************************************************
+    ***********************************************************************/
+   
+   always_ff @(posedge CLK, negedge nRST)
+     begin : ExecuteMemoryFF
+	if(!nRST)
+	  begin
+	     mem.memRen <= 0;
+	     mem.memWen <= 0;
+	     mem.regWen <= 0;
+	  end
+	else if(pcEn)
+	  begin
+	     mem.memRen <= exec.memRen;
+	     mem.memWen <= exec.memWen;
+	     mem.regWen <= exec.regWen;
+	  end // else: !if(!nRST)
+	mem.pc <= exec.pc;
+	mem.aluOut <= exec.aluOut;
+	mem.regDataSel <= exec.regDataSel;
+	mem.regDest <= exec.regDest;
+	mem.regData2 <= exec.regData2;
+     end // block: ExecuteMemoryFF
+
+   
+   /***********************************************************************
+    *                                Memory                               *
+    ***********************************************************************/
+
+   always_comb
+     begin
+	mem.memData = dpif.dmemload;
+      	dpif.dmemaddr = mem.aluOut;
+	dpif.dmemstore = mem.regData2;
+     end
+
+   /***********************************************************************
+    ***********************************************************************/
 
    always_ff @(posedge CLK, negedge nRST)
-     begin
+     begin : MemoryRegisterwFF
 	if(!nRST)
-	  pc <= PC_INIT;
-	else if(pcEn & !dpif.halt)
-	  pc <= pc_next;
+	  begin
+	     regw.regWen <= 0;
+	  end
+	else if(pcEn)
+	  begin
+	     regw.regWen <= mem.regWen;
+	  end // else: !if(!nRST)
+	regw.pc <= mem.pc;
+	regw.memData <= mem.memData;
+	regw.aluData <= mem.aluOut;
+	regw.regDataSel <= mem.regDataSel;
+	regw.regDest <= mem.regDest;
+     end // block: MemoryRegisterwFF
+   
+   /***********************************************************************
+    *                            Register Write                           *
+    ***********************************************************************/
+   //RegisterW
+
+   always_comb
+     begin
+	case(regw.regDataSel)
+	  2'b00,2'b11 : regw.regData = regw.aluData;
+	  2'b01: regw.regData = regw.memData;
+	  2'b10: regw.regData = regw.pc;
+	endcase // case (regw.regDataSel_in)
      end
+
+   /***********************************************************************
+    ***********************************************************************/
 
    always_ff @(posedge CLK, negedge nRST)
      begin
 	if(!nRST)
 	  dpif.halt <= 1'b0;
-	else
-	  dpif.halt <= halt;
+	else if(halt)
+	  dpif.halt <= 1'b1;
      end
-   
+
+   always_comb
+     begin
+	pcEn = dpif.ihit & !dpif.halt & ~dpif.dmemREN & ~dpif.dmemWEN;
+     end
 endmodule // datapath
 
 

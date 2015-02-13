@@ -49,10 +49,10 @@ module caches (
   // dcache invalidate before halt
   assign dcif.flushed = dcif.halt;
 
-  //single cycle
+  //singlecycle
   assign dcif.ihit = (dcif.imemREN) ? ~ccif.iwait : 0;
   assign dcif.dhit = (dcif.dmemREN|dcif.dmemWEN) ? ~ccif.dwait : 0;
-  assign dcif.imemload = (ccif.iwait) ? instr : ccif.iload;
+  assign dcif.imemload = ccif.iload;
   assign dcif.dmemload = ccif.dload;
 
 
@@ -61,6 +61,6 @@ module caches (
   assign ccif.dWEN = dcif.dmemWEN;
   assign ccif.dstore = dcif.dmemstore;
   assign ccif.iaddr = dcif.imemaddr;
-  assign ccif.daddr = daddr;
+  assign ccif.daddr = dcif.dmemaddr;
 
 endmodule
