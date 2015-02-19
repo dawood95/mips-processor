@@ -31,6 +31,8 @@ package pipeline_if;
       logic [1:0] pc_sel; // Not latched
       word_t brAddr;
       word_t jAddr;
+      logic 	  porta_sel;
+      logic [1:0] portb_sel;
       //ALU
       word_t porta;
       word_t portb;
@@ -54,13 +56,16 @@ package pipeline_if;
       logic       br;
       regbits_t   rs;
       regbits_t   rt;
+      logic 	  porta_sel;
+      logic [1:0] portb_sel;
       word_t pc;
       //ALU
       aluop_t aluOp;
       word_t porta;
       word_t portb;
       word_t aluOut;
-      word_t regData2; 
+      word_t regData2;
+      word_t storeData;
       //Memory
       logic 	  memRen;
       logic 	  memWen;
