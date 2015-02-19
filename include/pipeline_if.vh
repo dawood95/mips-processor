@@ -52,6 +52,8 @@ package pipeline_if;
    typedef struct packed {
       //Instruction
       logic       br;
+      regbits_t   rs;
+      regbits_t   rt;
       word_t pc;
       //ALU
       aluop_t aluOp;
