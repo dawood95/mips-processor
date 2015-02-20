@@ -29,7 +29,6 @@ package pipeline_if;
       word_t instr;
       word_t pc;
       logic [1:0] pc_sel; // Not latched
-      word_t brAddr;
       word_t jAddr;
       logic 	  porta_sel;
       logic [1:0] portb_sel;
@@ -54,11 +53,13 @@ package pipeline_if;
    typedef struct packed {
       //Instruction
       logic       br;
+      word_t      brAddr;
       regbits_t   rs;
       regbits_t   rt;
       logic 	  porta_sel;
       logic [1:0] portb_sel;
-      word_t pc;
+      word_t      pc;
+      word_t      immExt;
       //ALU
       aluop_t aluOp;
       word_t porta;

@@ -11,6 +11,7 @@ module control_unit
   import cpu_types_pkg::*;
    (
     input 	       word_t instr,
+    input logic        brTake, 
     output 	       aluop_t aluOp,
     output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
     output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, br, halt
@@ -96,7 +97,7 @@ module control_unit
 	  pc_sel = 2'b10;
 	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)
 	  pc_sel = 2'b01;
-	else if(iinstr.opcode == BEQ || iinstr.opcode == BNE)
+	else if(brTake)
 	  pc_sel = 2'b11;
 	else
 	  pc_sel = 2'b00;

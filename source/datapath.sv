@@ -35,8 +35,8 @@ module datapath (
    //Local signals
    
    word_t npc, npc_ff, immExt;
-   logic 		     pcEn, ifde_en, deex_en, porta_sel, immExt_sel, halt;
-   logic [1:0] 		     portb_sel, regW_sel;
+   logic 		     pcEn, pcEn_memRegw, ifde_en, deex_en, immExt_sel, halt, brTake;
+   logic [1:0] 		     regW_sel;
    
    i_t iinstr;
    j_t jinstr;
@@ -46,31 +46,16 @@ module datapath (
    /***********************************************************************
     *                       Instruction and Fetch                         *
     ***********************************************************************/
-   
-   /*request_unit request_unit(
-			     .CLK(CLK), 
-			     .nRST(nRST),
-			     .halt(dpif.halt),
-			     .r_req(exec.memRen),
-			     .w_req(exec.memWen),
-			     .iHit(dpif.ihit),
-			     .dHit(dpif.dhit),
-			     .iRen(dpif.imemREN),
-			     .dRen(dpif.dmemREN),
-			     .dWen(dpif.dmemWEN)
-			     );*/
-   
    always_comb
      begin
 	case(decode.pc_sel)
 	  2'b00: ifetch.imemAddr = npc_ff;
 	  2'b01: ifetch.imemAddr = decode.regData1;
 	  2'b10: ifetch.imemAddr = decode.jAddr;
-	  2'b11: ifetch.imemAddr = decode.brAddr;
+	  2'b11: ifetch.imemAddr = exec.brAddr;
 	endcase // case (pc_sel)
 	ifetch.instr = dpif.imemload;
 	dpif.imemaddr = ifetch.imemAddr;
-	ifde_en = !mem.memRen & !mem.memWen; // <-
 	npc = ifetch.imemAddr + 4;
 	ifetch.pc = npc;
      end
@@ -109,7 +94,7 @@ module datapath (
 
    control_unit control_unit(.instr(decode.instr),
 	       		     .aluOp(decode.aluOp), 
-			     .porta_sel(decode.porta_sel),      			     
+			     .porta_sel(decode.porta_sel),  
 			     .portb_sel(decode.portb_sel),
        			     .immExt_sel(immExt_sel), 
        			     .pc_sel(decode.pc_sel), 
@@ -118,7 +103,8 @@ module datapath (
        			     .memREN(decode.memRen), 
        			     .memWEN(decode.memWen), 
        			     .regWEN(decode.regWen),
-       			     .br(decode.br),	
+       			     .br(decode.br),
+			     .brTake(brTake),
 			     .halt(decode.halt)
 			     );
 
@@ -154,11 +140,10 @@ module datapath (
 	  2'b01: decode.regDest = rinstr.rt;
 	  2'b10: decode.regDest = 5'd31;
 	endcase // case (regW_sel)
-	decode.brAddr = decode.pc + (immExt << 2);
+
 	decode.jAddr = {decode.pc[31:28],jinstr.addr,2'b00};
 	decode.regData1 = rfif.rdat1;
 	decode.regData2 = rfif.rdat2;
-	deex_en = 1'b1; // For branch
      end
 
    /***********************************************************************
@@ -191,6 +176,7 @@ module datapath (
 		  exec.regWen <= 0;
 		  exec.br <= 0;
 	       end // else: !if(deex_en)
+	     exec.immExt <= immExt << 2;
 	     exec.porta_sel <= decode.porta_sel;
 	     exec.portb_sel <= decode.portb_sel;
 	     exec.rs <= rinstr.rs;
@@ -217,28 +203,30 @@ module datapath (
 	exec.aluOut = alif.out;
 	exec.eHalt = exec.dHalt || ((exec.aluOp == ALU_ADD || exec.aluOp == ALU_SUB) && alif.of);
 	alif.op = exec.aluOp;
+	exec.brAddr = exec.pc + exec.immExt;
+	brTake = exec.br & alif.zf;
      end
    
    //Forwarding Unit
 
    always_comb
      begin
-	if((exec.rs == mem.regDest) & !exec.porta_sel & mem.regWen)
-	     alif.porta = (mem.memRen) ? mem.memData : mem.aluOut;
+	if((exec.rs == mem.regDest) & !exec.porta_sel & mem.regWen & !mem.memRen)
+	  alif.porta = mem.aluOut;
 	else if((exec.rs == regw.regDest) & !exec.porta_sel & regw.regWen)
-	     alif.porta = regw.regData;
+	  alif.porta = regw.regData;
 	else
-	     alif.porta = exec.porta;
+	  alif.porta = exec.porta;
 
-	if((exec.rt == mem.regDest) & !exec.portb_sel & mem.regWen)
-	  alif.portb = (mem.memRen) ? mem.memData : mem.aluOut;
+	if((exec.rt == mem.regDest) & !exec.portb_sel & mem.regWen & !mem.memRen)
+	  alif.portb = mem.aluOut;
 	else if((exec.rt == regw.regDest) & !exec.portb_sel & regw.regWen)
 	  alif.portb = regw.regData;
 	else
 	  alif.portb = exec.portb;
 
-	if((exec.rt == mem.regDest) & mem.regWen)
-	  exec.storeData = (mem.memRen) ? mem.memData : mem.aluOut;
+	if((exec.rt == mem.regDest) & mem.regWen & !mem.memRen)
+	  exec.storeData = mem.aluOut;
 	else if((exec.rt == regw.regDest) & mem.regWen)
 	  exec.storeData = regw.regData;
 	else
@@ -303,7 +291,7 @@ module datapath (
 	     regw.regDest <= 0;
 	     regw.pc <= PC_INIT; //Check this
 	  end
-	else if(pcEn)
+	else if(pcEn_memRegw)
 	  begin
 	     regw.regWen <= mem.regWen;
 	     regw.regDataSel <= mem.regDataSel;
@@ -343,6 +331,10 @@ module datapath (
 	dpif.imemREN = ~mem.halt;
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
-	pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 
+	       !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	pcEn_memRegw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	ifde_en = !mem.memRen & !mem.memWen; // <-
+	deex_en = !brTake; // For branch
      end
 endmodule // datapath
