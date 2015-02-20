@@ -103,7 +103,9 @@ module datapath (
        			     .memREN(decode.memRen), 
        			     .memWEN(decode.memWen), 
        			     .regWEN(decode.regWen),
-       			     .br(decode.br),
+       			     .beq(decode.beq),
+			     .bne(decode.bne),
+			     .jal(decode.jal),
 			     .brTake(brTake),
 			     .halt(decode.halt)
 			     );
@@ -156,7 +158,9 @@ module datapath (
 	     exec.memRen <= 0;
 	     exec.memWen <= 0;
 	     exec.regWen <= 0;
-	     exec.br <= 0;
+	     exec.beq <= 0;
+	     exec.bne <= 0;
+	     exec.jal <= 0;
 	     exec.pc <= 0;
 	     exec.dHalt <= 0;
 	  end
@@ -167,14 +171,18 @@ module datapath (
 		  exec.memRen <= decode.memRen;
 		  exec.memWen <= decode.memWen;
 		  exec.regWen <= decode.regWen;
-		  exec.br <= decode.br;
+		  exec.beq <= decode.beq;
+		  exec.bne <= decode.bne;
+		  exec.jal <= decode.jal;
 	       end
 	     else
 	       begin
 		  exec.memRen <= 0;
 		  exec.memWen <= 0;
 		  exec.regWen <= 0;
-		  exec.br <= 0;
+		  exec.beq <= 0;
+		  exec.bne <= 0;
+		  exec.jal <= 0;
 	       end // else: !if(deex_en)
 	     exec.immExt <= immExt << 2;
 	     exec.porta_sel <= decode.porta_sel;
@@ -204,7 +212,7 @@ module datapath (
 	exec.eHalt = exec.dHalt || ((exec.aluOp == ALU_ADD || exec.aluOp == ALU_SUB) && alif.of);
 	alif.op = exec.aluOp;
 	exec.brAddr = exec.pc + exec.immExt;
-	brTake = exec.br & alif.zf;
+	brTake = (exec.beq & alif.zf) | (exec.bne & !alif.zf) ;
      end
    
    //Forwarding Unit
@@ -212,21 +220,21 @@ module datapath (
    always_comb
      begin
 	if((exec.rs == mem.regDest) & !exec.porta_sel & mem.regWen & !mem.memRen)
-	  alif.porta = mem.aluOut;
+	  alif.porta = (mem.jal) ? mem.pc : mem.aluOut;
 	else if((exec.rs == regw.regDest) & !exec.porta_sel & regw.regWen)
 	  alif.porta = regw.regData;
 	else
 	  alif.porta = exec.porta;
 
 	if((exec.rt == mem.regDest) & !exec.portb_sel & mem.regWen & !mem.memRen)
-	  alif.portb = mem.aluOut;
+	  alif.portb = (mem.jal) ? mem.pc : mem.aluOut;
 	else if((exec.rt == regw.regDest) & !exec.portb_sel & regw.regWen)
 	  alif.portb = regw.regData;
 	else
 	  alif.portb = exec.portb;
 
 	if((exec.rt == mem.regDest) & mem.regWen & !mem.memRen)
-	  exec.storeData = mem.aluOut;
+	  exec.storeData = (mem.jal) ? mem.pc : mem.aluOut;
 	else if((exec.rt == regw.regDest) & mem.regWen)
 	  exec.storeData = regw.regData;
 	else
@@ -249,6 +257,7 @@ module datapath (
 	     mem.pc <= PC_INIT;
 	     mem.regDataSel <= 0;
 	     mem.regDest <= 0;
+	     mem.jal <= 0;
 	  end
 	else if(pcEn)
 	  begin
@@ -261,6 +270,7 @@ module datapath (
 	     mem.pc <= exec.pc;
 	     mem.regDataSel <= exec.regDataSel;
 	     mem.regDest <= exec.regDest;
+	     mem.jal <= exec.jal;
 	  end // else: !if(!nRST)
 
      end // block: ExecuteMemoryFF

@@ -25,7 +25,9 @@ package pipeline_if;
    //Decode 
    typedef struct packed {
       //Instruction & PC
-      logic       br;
+      logic       beq;
+      logic 	  bne;
+      logic 	  jal;
       word_t instr;
       word_t pc;
       logic [1:0] pc_sel; // Not latched
@@ -52,7 +54,9 @@ package pipeline_if;
    //Execute
    typedef struct packed {
       //Instruction
-      logic       br;
+      logic       jal;	  
+      logic       beq;
+      logic       bne;	  
       word_t      brAddr;
       regbits_t   rs;
       regbits_t   rt;
@@ -82,16 +86,17 @@ package pipeline_if;
    //Data Read Write 
    typedef struct packed {	
       //Instruction
-      word_t pc;
+      word_t      pc;
+      logic 	  jal;
       //ALU
-      word_t aluOut;
-      word_t regData2;
+      word_t      aluOut;
+      word_t      regData2;
       //Memory
       logic 	  memRen;
       logic 	  memWen;
       //Register
       logic [1:0] regDataSel; 
-      regbits_t regDest;
+      regbits_t   regDest;
       logic 	  regWen;
       word_t 	  memData;
       //halt

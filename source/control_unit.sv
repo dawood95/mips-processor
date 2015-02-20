@@ -14,7 +14,7 @@ module control_unit
     input logic        brTake, 
     output 	       aluop_t aluOp,
     output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
-    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, br, halt
+    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, halt
     );
 
    i_t iinstr;
@@ -31,6 +31,11 @@ module control_unit
 
    always_comb
      begin
+	//JAL
+	if(jinstr.opcode == JAL)
+	  jal = 1'b1;
+	else
+	  jal = 1'b0;
 	//Halt
 	if(iinstr.opcode == HALT)
 	  halt = 1'b1;
@@ -109,12 +114,18 @@ module control_unit
 	regWEN = ((rinstr.opcode == RTYPE && rinstr.funct == JR) || 
 		  (iinstr.opcode == BEQ) ||
 		  (iinstr.opcode == BNE) || 
-		  (iinstr.opcode == SW)) ? 0 : 1;
+		  (iinstr.opcode == SW)  ||
+		  (iinstr.opcode == J)) ? 0 : 1;
 	//Branch Enable
-	if(iinstr.opcode == BEQ || iinstr.opcode == BNE)
-	  br = 1'b1;
+	if(iinstr.opcode == BEQ)
+	  beq = 1'b1;
 	else
-	  br = 1'b0;
+	  beq = 1'b0;
+	if(iinstr.opcode == BNE)
+	  bne = 1'b1;
+	else
+	  bne = 1'b0;
+	
      end
    
    always_comb
