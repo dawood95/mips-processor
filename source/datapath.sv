@@ -174,6 +174,7 @@ module datapath (
 		  exec.beq <= decode.beq;
 		  exec.bne <= decode.bne;
 		  exec.jal <= decode.jal;
+		  exec.dHalt <= decode.halt;
 	       end
 	     else
 	       begin
@@ -183,6 +184,7 @@ module datapath (
 		  exec.beq <= 0;
 		  exec.bne <= 0;
 		  exec.jal <= 0;
+		  exec.dHalt <= 0;
 	       end // else: !if(deex_en)
 	     exec.immExt <= immExt << 2;
 	     exec.porta_sel <= decode.porta_sel;
@@ -196,7 +198,7 @@ module datapath (
 	     exec.regDataSel <= decode.regDataSel;
 	     exec.regDest <= decode.regDest;
 	     exec.regData2 <= decode.regData2;
-	     exec.dHalt <= decode.halt;
+
 	  end // else: !if(!nRST)
      end // block: DecodeExecuteFF
 
