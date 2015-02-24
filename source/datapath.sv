@@ -181,8 +181,6 @@ module datapath (
 		  exec.memRen <= 0;
 		  exec.memWen <= 0;
 		  exec.regWen <= 0;
-		  exec.beq <= 0;
-		  exec.bne <= 0;
 		  exec.jal <= 0;
 		  exec.dHalt <= 0;
 	       end // else: !if(deex_en)
