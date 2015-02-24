@@ -35,7 +35,7 @@ module datapath (
    //Local signals
    
    word_t npc, npc_ff, immExt;
-   logic 		     pcEn, pcEn_exMemRegw, ifde_en, deex_en, exmem_en, immExt_sel, halt, brTake;
+   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, brTake;
    logic [1:0] 		     regW_sel;
    
    i_t iinstr;
@@ -64,7 +64,7 @@ module datapath (
      begin
 	if(!nRST)
 	  npc_ff <= PC_INIT;
-	else if(pcEn & ifde_en)
+	else if(pcEn_ifde & ifde_en)
 	  npc_ff <= npc;
      end
    
@@ -78,7 +78,7 @@ module datapath (
 	    decode.instr <= 0;
 	    decode.pc <= PC_INIT;
 	 end
-       else if(pcEn)
+       else if(pcEn_ifde)
 	 begin
 	    if(ifde_en) //Inst Decode ff en
 	      decode.instr <= ifetch.instr;
@@ -164,7 +164,7 @@ module datapath (
 	     exec.pc <= 0;
 	     exec.dHalt <= 0;
 	  end
-	else if(pcEn)
+	else if(pcEn_deex)
 	  begin
 	     if(deex_en)
 	       begin
@@ -261,7 +261,7 @@ module datapath (
 	     mem.regDest <= 0;
 	     mem.jal <= 0;
 	  end
-	else if(pcEn_exMemRegw)
+	else if(pcEn_exmem)
 	  begin
 	     if(exmem_en)
 	       begin
@@ -314,7 +314,7 @@ module datapath (
 	     regw.regDest <= 0;
 	     regw.pc <= PC_INIT; //Check this
 	  end
-	else if(pcEn_exMemRegw)
+	else if(pcEn_memregw)
 	  begin
 	     regw.regWen <= mem.regWen;
 	     regw.regDataSel <= mem.regDataSel;
@@ -354,11 +354,23 @@ module datapath (
 	dpif.imemREN = ~mem.halt;
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
-	pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 
-	       !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
-	pcEn_exMemRegw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+
+	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
+	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
+		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	pcEn_exmem = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+
+	ifde_en = 1'b1;
+	deex_en = !mem.memRen & !mem.memWen & !brTake;
 	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
-	ifde_en = !mem.memRen & !mem.memWen; // <-
-	deex_en = !brTake; // For branch
+	//memwb
+	  
+	//pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 
+	//       !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	//pcEn_exMemRegw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	//exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	//ifde_en = !mem.memRen & !mem.memWen; // <-
+	//deex_en = !brTake; // For branch
      end
 endmodule // datapath
