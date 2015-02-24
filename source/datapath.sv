@@ -171,10 +171,12 @@ module datapath (
 		  exec.memRen <= decode.memRen;
 		  exec.memWen <= decode.memWen;
 		  exec.regWen <= decode.regWen;
-		  exec.beq <= decode.beq;
-		  exec.bne <= decode.bne;
 		  exec.jal <= decode.jal;
 		  exec.dHalt <= decode.halt;
+		  exec.rs <= rinstr.rs;
+		  exec.rt <= rinstr.rt;
+		  exec.beq <= decode.beq;
+		  exec.bne <= decode.bne;
 	       end
 	     else
 	       begin
@@ -183,12 +185,15 @@ module datapath (
 		  exec.regWen <= 0;
 		  exec.jal <= 0;
 		  exec.dHalt <= 0;
+		  exec.rs <= 0;
+		  exec.rt <= 0;
+		  exec.beq <= 0;
+		  exec.bne <= 0;
 	       end // else: !if(deex_en)
+
 	     exec.immExt <= immExt << 2;
 	     exec.porta_sel <= decode.porta_sel;
 	     exec.portb_sel <= decode.portb_sel;
-	     exec.rs <= rinstr.rs;
-	     exec.rt <= rinstr.rt;
 	     exec.pc <= decode.pc;
 	     exec.porta <= decode.porta;
 	     exec.portb <= decode.portb;
@@ -355,7 +360,8 @@ module datapath (
 
 	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
 	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
-		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) &
+		    !((mem.memRen | mem.memWen) & brTake);
 	pcEn_exmem = (dpif.ihit | dpif.dhit) & !dpif.halt;
 	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
 

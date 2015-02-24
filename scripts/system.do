@@ -58,9 +58,10 @@ add wave -noupdate /system_tb/DUT/CPU/DP/exec
 add wave -noupdate /system_tb/DUT/CPU/DP/mem
 add wave -noupdate /system_tb/DUT/CPU/DP/regw
 add wave -noupdate /system_tb/DUT/CPU/DP/brTake
+add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
 add wave -noupdate -expand /system_tb/DUT/CPU/DP/reg_file/register_f
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {402735 ps} 0}
+WaveRestoreCursors {{Cursor 1} {696001 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 215
@@ -76,4 +77,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {290839 ps} {506283 ps}
+WaveRestoreZoom {581684 ps} {797128 ps}

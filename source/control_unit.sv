@@ -98,12 +98,12 @@ module control_unit
 	// 01 -> Register
 	// 10 -> Jump
 	// 11 -> branch
-	if(iinstr.opcode == JAL || iinstr.opcode == J)
-	  pc_sel = 2'b10;
+	if(brTake)
+	  pc_sel = 2'b11;
 	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)
 	  pc_sel = 2'b01;
-	else if(brTake)
-	  pc_sel = 2'b11;
+	else if(iinstr.opcode == JAL || iinstr.opcode == J)
+	  pc_sel = 2'b10;
 	else
 	  pc_sel = 2'b00;
 	//Memory Read Enable
