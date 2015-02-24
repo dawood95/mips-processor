@@ -35,7 +35,7 @@ module datapath (
    //Local signals
    
    word_t npc, npc_ff, immExt;
-   logic 		     pcEn, pcEn_memRegw, ifde_en, deex_en, immExt_sel, halt, brTake;
+   logic 		     pcEn, pcEn_exMemRegw, ifde_en, deex_en, exmem_en, immExt_sel, halt, brTake;
    logic [1:0] 		     regW_sel;
    
    i_t iinstr;
@@ -261,18 +261,29 @@ module datapath (
 	     mem.regDest <= 0;
 	     mem.jal <= 0;
 	  end
-	else if(pcEn)
+	else if(pcEn_exMemRegw)
 	  begin
-	     mem.memRen <= exec.memRen;
-	     mem.memWen <= exec.memWen;
-	     mem.regWen <= exec.regWen;
+	     if(exmem_en)
+	       begin
+		  mem.memRen <= exec.memRen;
+		  mem.memWen <= exec.memWen;
+		  mem.regWen <= exec.regWen;
+		  mem.halt <= exec.eHalt;
+		  mem.jal <= exec.jal;
+	       end // if (exmem_en)
+	     else
+	       begin
+		  mem.memRen <= 0;
+		  mem.memWen <= 0;
+		  mem.regWen <= 0;
+		  mem.halt <= 0;
+		  mem.jal <= 0;
+	       end // else: !if(exmem_en)
 	     mem.aluOut <= exec.aluOut;
-	     mem.regData2 <= exec.storeData;
-	     mem.halt <= exec.eHalt;
 	     mem.pc <= exec.pc;
 	     mem.regDataSel <= exec.regDataSel;
 	     mem.regDest <= exec.regDest;
-	     mem.jal <= exec.jal;
+	     mem.regData2 <= exec.storeData;
 	  end // else: !if(!nRST)
 
      end // block: ExecuteMemoryFF
@@ -303,7 +314,7 @@ module datapath (
 	     regw.regDest <= 0;
 	     regw.pc <= PC_INIT; //Check this
 	  end
-	else if(pcEn_memRegw)
+	else if(pcEn_exMemRegw)
 	  begin
 	     regw.regWen <= mem.regWen;
 	     regw.regDataSel <= mem.regDataSel;
@@ -345,7 +356,8 @@ module datapath (
 	dpif.dmemREN = mem.memRen;
 	pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 
 	       !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
-	pcEn_memRegw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	pcEn_exMemRegw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
 	ifde_en = !mem.memRen & !mem.memWen; // <-
 	deex_en = !brTake; // For branch
      end
