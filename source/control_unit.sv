@@ -14,7 +14,7 @@ module control_unit
     input logic        brTake, 
     output 	       aluop_t aluOp,
     output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
-    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, halt
+    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, jr, halt
     );
 
    i_t iinstr;
@@ -31,6 +31,11 @@ module control_unit
 
    always_comb
      begin
+	//JR
+	if(rinstr.funct == JR)
+	  jr = 1'b1;
+	else
+	  jr = 1'b0;
 	//JAL
 	if(jinstr.opcode == JAL)
 	  jal = 1'b1;

@@ -34,8 +34,8 @@ module datapath (
 
    //Local signals
    
-   word_t npc, npc_ff, immExt;
-   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, brTake;
+   word_t npc, npc_ff, immExt, jraddr;
+   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, brTake, jr, jrWait;
    logic [1:0] 		     regW_sel;
    
    i_t iinstr;
@@ -50,7 +50,7 @@ module datapath (
      begin
 	case(decode.pc_sel)
 	  2'b00: ifetch.imemAddr = npc_ff;
-	  2'b01: ifetch.imemAddr = decode.regData1;
+	  2'b01: ifetch.imemAddr = jraddr;//decode.regData1;
 	  2'b10: ifetch.imemAddr = decode.jAddr;
 	  2'b11: ifetch.imemAddr = exec.brAddr;
 	endcase // case (pc_sel)
@@ -106,6 +106,7 @@ module datapath (
        			     .beq(decode.beq),
 			     .bne(decode.bne),
 			     .jal(decode.jal),
+			     .jr(jr),
 			     .brTake(brTake),
 			     .halt(decode.halt)
 			     );
@@ -244,6 +245,13 @@ module datapath (
 	  exec.storeData = regw.regData;
 	else
 	  exec.storeData = exec.regData2;
+
+	if((rinstr.rs == mem.regDest) & mem.regWen & !mem.memRen)
+	  jraddr = (mem.jal) ? mem.pc : mem.aluOut;
+	else if((rinstr.rs == regw.regDest) & mem.regWen)
+	  jraddr = regw.regData;
+	else
+	  jraddr = decode.regData1;
      end
    
    /***********************************************************************
@@ -358,10 +366,13 @@ module datapath (
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
 
-	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
+	jrWait = (jr & (exec.regDest == rinstr.rs)) ? 1 : 0;
+		
+	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen & !jrWait;
 	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
 		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) &
-		    !((mem.memRen | mem.memWen) & brTake);
+		    !((mem.memRen | mem.memWen) & brTake) &
+		    !jrWait;
 	pcEn_exmem = (dpif.ihit | dpif.dhit) & !dpif.halt;
 	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
 
