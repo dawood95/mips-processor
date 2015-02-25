@@ -366,13 +366,13 @@ module datapath (
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
 
-	jrWait = (jr & (exec.regDest == rinstr.rs)) ? 1 : 0;
+	jrWait = (jr & (exec.regDest == rinstr.rs) & exec.regWen) ? 1 : 0;
 		
 	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen & !jrWait;
 	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
 		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) &
-		    !((mem.memRen | mem.memWen) & brTake) &
-		    !jrWait;
+		    !((mem.memRen | mem.memWen) & brTake);
+	
 	pcEn_exmem = (dpif.ihit | dpif.dhit) & !dpif.halt;
 	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
 
