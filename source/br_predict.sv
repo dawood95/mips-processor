@@ -1,5 +1,9 @@
 /*
-Branch predicting module
+  Branch predicting module
+
+  Has 2 tables, a branch target buffer table and the prediction table.
+
+  Called in instruction fetch stage of pipeline.
 */
 
 `include "cpu_types_pkg.vh"
@@ -12,10 +16,11 @@ module br_predict
     input word_t instr,
     input logic pr_correct,
     input word_t update_br_target,
-    input [1:0] w_index,
-    input [1:0] r_index,
+    input logic [1:0] w_index,
+    input logic [1:0] r_index,
     output word_t br_target,
-    output logic take_br
+    output logic take_br,
+    output logic [1:0] out_index
   );
 
   // local vars
@@ -31,8 +36,11 @@ module br_predict
   stateType twoBitSat_next[1:0];
 
   // 4 entries in branch target table
-  logic [1:0] id[1:0];
+  // logic [1:0] index[1:0];
   word_t target[1:0];
+
+  // temp for outputting index
+  logic [1:0] out_idx;
 
 
   // flip flop
@@ -81,12 +89,24 @@ module br_predict
     target[w_index] = update_br_target;
 
     // check the id against the pc
-      // take/don't take prediction
+    if (instr[31:4] == target[r_index][31:4])
+    begin
+      // look at the result of the state machine
       if (twoBitSat[r_index] == TAKE1 || twoBitSat[r_index] == TAKE2)
         take_br = 1;
       else
         take_br = 0;
+    end else
+    begin
+      take_br = 0;
+    end
+
+  // send index to ifde latch
+  out_idx = instr[3:2]; // 4 entry table so 2 bits
+  out_index = out_idx;
+
   end
+
 
 endmodule
 
