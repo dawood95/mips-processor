@@ -10,10 +10,11 @@
 module control_unit
   import cpu_types_pkg::*;
    (
-    input 	       word_t instr,
-    input logic        brTake, 
-    output 	       aluop_t aluOp,
-    output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
+    input  word_t      instr,
+    input  logic       brTake, btb_correct, btb_wrongtype, 
+    output aluop_t     aluOp,
+    output logic [2:0] pc_sel
+    output logic [1:0] portb_sel, regW_sel, wMemReg_sel,
     output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, jr, halt
     );
 
@@ -99,18 +100,22 @@ module control_unit
 	else
 	  regW_sel = 2'b01;
 	//PC Select
-	// 00 -> PC+4 
-	// 01 -> Register
-	// 10 -> Jump
-	// 11 -> branch
-	if(brTake)
-	  pc_sel = 2'b11;
+	// 000 -> PC+4 
+	// 001 -> Register
+	// 010 -> Jump
+	// 011 -> branch from decode
+	// 100 -> Corrected branch from memory
+	// 101 -> npc from memory
+	if(!btb_correct)
+	  pc_sel = (btb_wrongtype) ? 3'b101 : 3'b100;
+	else if(brTake)
+	  pc_sel = 3'b011;
 	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)
-	  pc_sel = 2'b01;
+	  pc_sel = 3'b001;
 	else if(iinstr.opcode == JAL || iinstr.opcode == J)
-	  pc_sel = 2'b10;
+	  pc_sel = 3'b010;
 	else
-	  pc_sel = 2'b00;
+	  pc_sel = 3'b00;
 	//Memory Read Enable
 	memREN = (iinstr.opcode == LW) ? 1 : 0;
 	//Memory Write Enable

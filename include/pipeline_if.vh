@@ -17,35 +17,45 @@ package pipeline_if;
    //Instruction fetch
    typedef struct {
       //Instruction & PC
-      word_t imemAddr;
-      word_t instr;
-      word_t pc;
+      word_t      imemAddr;
+      word_t      instr;
+      word_t      pc;
+      //Brach Prediction
+      logic 	  btb_taken;
+      word_t      btb_target;
+      logic [1:0] btb_index;
    } ifetch_t;
    
    //Decode 
    typedef struct packed {
       //Instruction & PC
+      word_t      instr;
+      word_t      pc;
       logic       beq;
       logic 	  bne;
       logic 	  jal;
-      word_t instr;
-      word_t pc;
-      logic [1:0] pc_sel; // Not latched
-      word_t jAddr;
+      logic       jr;	 
+      word_t      jrAddr;
+      word_t      jAddr;
+      logic [1:0] pc_sel;
       logic 	  porta_sel;
       logic [1:0] portb_sel;
+      //Branch
+      logic 	  btb_taken;
+      word_t      btb_target;
+      logic [1:0] btb_index;
       //ALU
-      word_t porta;
-      word_t portb;
-      aluop_t aluOp;
-      word_t regData1;
-      word_t regData2;
+      word_t      porta;
+      word_t      portb;
+      aluop_t     aluOp;
+      word_t      regData1;
+      word_t      regData2;
       //Memory
       logic 	  memRen;
       logic 	  memWen;
       //Register
       logic [1:0] regDataSel; 
-      regbits_t regDest;
+      regbits_t   regDest;
       logic 	  regWen;
       //Halt
       logic 	  halt;
@@ -64,6 +74,10 @@ package pipeline_if;
       logic [1:0] portb_sel;
       word_t      pc;
       word_t      immExt;
+      //Branch
+      logic 	  btb_taken;
+      word_t      btb_target;
+      logic [1:0] btb_index;
       //ALU
       aluop_t aluOp;
       word_t porta;
@@ -88,9 +102,19 @@ package pipeline_if;
       //Instruction
       word_t      pc;
       logic 	  jal;
+      logic       beq;
+      logic 	  bne;
+      logic       brTake;
+      word_t      brAddr;
+      word_t      brTarget;	  
+      //Branch
+      logic 	  btb_taken;
+      word_t      btb_target;
+      logic [1:0] btb_index;
       //ALU
       word_t      aluOut;
       word_t      regData2;
+      logic 	  zf;	  
       //Memory
       logic 	  memRen;
       logic 	  memWen;

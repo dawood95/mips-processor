@@ -7,11 +7,10 @@
 	ori $29, $0, 0xFFFC
 	ori $4, $0, 0x0002
 	ori $5, $0, 0x0008
-	ori $11, $0, 0x0100
 	push $4
 	push $5
 	jal mult
-	sw $2, 0($11)
+	pop $2
 	halt
 
 #Mult Subroutine - $2 and $3 are bound to change
@@ -31,5 +30,4 @@ shift:	sll $2, $2, 0x0001
 	pop $6
 	pop $4
 	push $1
-
 	jr $31
