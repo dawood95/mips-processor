@@ -1,7 +1,8 @@
 /*
- Sheik Dawood
+ Sheik Dawood 
  dawood0@purdue.edu
  
+
  datapath contains register file, control, hazard,
  muxes, and glue logic for processor
  */
