@@ -13,7 +13,7 @@ module control_unit
     input  word_t      instr,
     input  logic       brTake, btb_correct, btb_wrongtype, 
     output aluop_t     aluOp,
-    output logic [2:0] pc_sel
+    output logic [2:0] pc_sel,
     output logic [1:0] portb_sel, regW_sel, wMemReg_sel,
     output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, jr, halt
     );
@@ -108,7 +108,7 @@ module control_unit
 	// 101 -> npc from memory
 	if(!btb_correct)
 	  pc_sel = (btb_wrongtype) ? 3'b101 : 3'b100;
-	else if(brTake)
+	else if((iinstr.opcode == BEQ || iinstr.opcode == BNE) & brTake)
 	  pc_sel = 3'b011;
 	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)
 	  pc_sel = 3'b001;

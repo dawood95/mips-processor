@@ -35,9 +35,9 @@ package pipeline_if;
       logic 	  bne;
       logic 	  jal;
       logic       jr;	 
-      word_t      jrAddr;
+      word_t      jraddr;
       word_t      jAddr;
-      logic [1:0] pc_sel;
+      logic [2:0] pc_sel;
       logic 	  porta_sel;
       logic [1:0] portb_sel;
       //Branch

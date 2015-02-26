@@ -35,7 +35,6 @@ add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/control_unit/ii
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/control_unit/jinstr
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/control_unit/rinstr
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/immExt
-add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/pcEn
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/immExt_sel
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/regW_sel
 add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/WEN
@@ -57,11 +56,27 @@ add wave -noupdate /system_tb/DUT/CPU/DP/decode
 add wave -noupdate /system_tb/DUT/CPU/DP/exec
 add wave -noupdate /system_tb/DUT/CPU/DP/mem
 add wave -noupdate /system_tb/DUT/CPU/DP/regw
-add wave -noupdate /system_tb/DUT/CPU/DP/brTake
+add wave -noupdate /system_tb/DUT/CPU/DP/ifde_en
+add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
+add wave -noupdate /system_tb/DUT/CPU/DP/exmem_en
 add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
 add wave -noupdate -expand /system_tb/DUT/CPU/DP/reg_file/register_f
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/CLK
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/nRST
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/instr
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/pr_correct
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/update_br_target
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/w_index
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/r_index
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/br_target
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/take_br
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/out_index
+add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/out_idx
+add wave -noupdate -expand /system_tb/DUT/CPU/DP/BTB/target
+add wave -noupdate /system_tb/DUT/CPU/DP/btb_correct
+add wave -noupdate /system_tb/DUT/CPU/DP/btb_wrongtype
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {696001 ps} 0}
+WaveRestoreCursors {{Cursor 1} {574521 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 215
@@ -77,4 +92,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {581684 ps} {797128 ps}
+WaveRestoreZoom {527818 ps} {743262 ps}
