@@ -55,6 +55,7 @@ module datapath (
 	  3'b011: ifetch.imemAddr = decode.btb_target;
 	  3'b100: ifetch.imemAddr = mem.brTarget;
 	  3'b101: ifetch.imemAddr = mem.pc;
+	  default: ifetch.imemAddr = npc_ff;
 	endcase // case (decode.pc_sel)
 	ifetch.instr = dpif.imemload;
 	dpif.imemaddr = ifetch.imemAddr;
