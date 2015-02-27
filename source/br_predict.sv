@@ -13,12 +13,14 @@ module br_predict
    (
     input logic        CLK,
     input logic        nRST,
-    input word_t       instr,
+    input 	       word_t instr,
+    input logic        br, 
+    input logic        brTaken,
     input logic        pr_correct,
-    input word_t update_br_target,
+    input 	       word_t update_br_target,
     input logic [1:0]  w_index,
     input logic [1:0]  r_index,
-    output word_t      br_target,
+    output 	       word_t br_target,
     output logic       take_br,
     output logic [1:0] out_index
     );
@@ -38,7 +40,7 @@ module br_predict
    // 4 entries in branch target table
    // logic [:0] index[1:0];
    word_t target[3:0];
-
+   logic 	       isValid[3:0];
    // temp for outputting index
    logic [1:0] 	       out_idx;
 
@@ -47,10 +49,15 @@ module br_predict
    always_ff @(posedge CLK, negedge nRST)
      begin
 	if(!nRST)
-	  twoBitSat[w_index] <= NTAKE1;
-	else
+	  begin
+	     twoBitSat <= '{default:'{NTAKE2}};
+	     isValid <= '{default:'0};
+	  end
+	else if(br)
 	  begin
 	     twoBitSat[w_index] <= twoBitSat_next[w_index];
+	     target[w_index] <= update_br_target;
+	     isValid[w_index] <= 1'b1;
 	  end
      end
 
@@ -60,22 +67,22 @@ module br_predict
 	case(twoBitSat[w_index])
 	  TAKE1:
             begin
-               if(pr_correct) twoBitSat_next[w_index] = TAKE1;
+               if(brTaken) twoBitSat_next[w_index] = TAKE1;
                else twoBitSat_next[w_index] = TAKE2;
             end
 	  TAKE2:
             begin
-               if(pr_correct) twoBitSat_next[w_index] = TAKE1;
+               if(brTaken) twoBitSat_next[w_index] = TAKE1;
                else twoBitSat_next[w_index] = NTAKE1;
             end
 	  NTAKE1:
             begin
-               if(pr_correct) twoBitSat_next[w_index] = TAKE1;
+               if(brTaken) twoBitSat_next[w_index] = TAKE1;
                else twoBitSat_next[w_index] = NTAKE2;
             end
 	  NTAKE2:
             begin
-               if(pr_correct) twoBitSat_next[w_index] = NTAKE1;
+               if(brTaken) twoBitSat_next[w_index] = NTAKE1;
                else twoBitSat_next[w_index] = NTAKE2;
             end
 	endcase
@@ -86,20 +93,13 @@ module br_predict
      begin
 	br_target = target[r_index];
 	// update branch target
-	target[w_index] = update_br_target;
 
-	// check the id against the pc
-	if (instr[31:4] == target[r_index][31:4])
-	  begin
-	     // look at the result of the state machine
-	     if (twoBitSat[r_index] == TAKE1 || twoBitSat[r_index] == TAKE2)
-               take_br = 1;
-	     else
-               take_br = 0;
-	  end else
-	    begin
-	       take_br = 0;
-	    end
+	
+	// look at the result of the state machine
+	if ((twoBitSat[r_index] == TAKE1 || twoBitSat[r_index] == TAKE2) && isValid[r_index])
+          take_br = 1;
+	else
+          take_br = 0;
 
 	// send index to ifde latch
 	out_idx = instr[3:2]; // 4 entry table so 2 bits

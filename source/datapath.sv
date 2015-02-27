@@ -77,6 +77,8 @@ module datapath (
 		  .CLK(CLK),
 		  .nRST(nRST),
 		  .instr(ifetch.imemAddr),
+		  .br(mem.bne | mem.beq),
+		  .brTaken(mem.brTake),
 		  .pr_correct(btb_correct),
 		  .update_br_target(mem.brTarget),
 		  .w_index(mem.btb_index),
