@@ -56,10 +56,13 @@ add wave -noupdate /system_tb/DUT/CPU/DP/decode
 add wave -noupdate /system_tb/DUT/CPU/DP/exec
 add wave -noupdate /system_tb/DUT/CPU/DP/mem
 add wave -noupdate /system_tb/DUT/CPU/DP/regw
+add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_ifde
+add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_deex
+add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_exmem
+add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_memregw
 add wave -noupdate /system_tb/DUT/CPU/DP/ifde_en
 add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
 add wave -noupdate /system_tb/DUT/CPU/DP/exmem_en
-add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
 add wave -noupdate -expand /system_tb/DUT/CPU/DP/reg_file/register_f
 add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/CLK
 add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/nRST
@@ -76,7 +79,7 @@ add wave -noupdate -expand /system_tb/DUT/CPU/DP/BTB/target
 add wave -noupdate /system_tb/DUT/CPU/DP/btb_correct
 add wave -noupdate /system_tb/DUT/CPU/DP/btb_wrongtype
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {574521 ps} 0}
+WaveRestoreCursors {{Cursor 1} {328013 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 215
@@ -92,4 +95,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {527818 ps} {743262 ps}
+WaveRestoreZoom {215440 ps} {430884 ps}

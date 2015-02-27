@@ -67,8 +67,10 @@ module datapath (
      begin
 	if(!nRST)
 	  npc_ff <= PC_INIT;
-	else if(pcEn_ifde & ifde_en)
+	else if((pcEn_ifde & ifde_en))
 	  npc_ff <= npc;
+	else if(pcEn_exmem & exmem_en & exec.jr)
+	  npc_ff <= exec.jraddr;
      end
 
    br_predict BTB(
