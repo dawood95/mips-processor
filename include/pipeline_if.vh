@@ -35,7 +35,6 @@ package pipeline_if;
       logic 	  bne;
       logic 	  jal;
       logic       jr;	 
-      word_t      jraddr;
       word_t      jAddr;
       logic [2:0] pc_sel;
       logic 	  porta_sel;
@@ -64,6 +63,7 @@ package pipeline_if;
    //Execute
    typedef struct packed {
       //Instruction
+      logic       jr;	 
       logic       jal;	  
       logic       beq;
       logic       bne;	  
@@ -74,23 +74,25 @@ package pipeline_if;
       logic [1:0] portb_sel;
       word_t      pc;
       word_t      immExt;
+      word_t      jraddr;
       //Branch
       logic 	  btb_taken;
       word_t      btb_target;
       logic [1:0] btb_index;
       //ALU
-      aluop_t aluOp;
-      word_t porta;
-      word_t portb;
-      word_t aluOut;
-      word_t regData2;
-      word_t storeData;
+      aluop_t     aluOp;
+      word_t      porta;
+      word_t      portb;
+      word_t      aluOut;
+      word_t      regData1;
+      word_t      regData2;
+      word_t      storeData;
       //Memory
       logic 	  memRen;
       logic 	  memWen;
       //Register
       logic [1:0] regDataSel; 
-      regbits_t regDest;
+      regbits_t   regDest;
       logic 	  regWen;
       //Halt
       logic 	  dHalt;

@@ -11,7 +11,7 @@ module control_unit
   import cpu_types_pkg::*;
    (
     input  word_t      instr,
-    input  logic       brTake, btb_correct, btb_wrongtype, 
+    input  logic       brTake, jrTake, btb_correct, btb_wrongtype, 
     output aluop_t     aluOp,
     output logic [2:0] pc_sel,
     output logic [1:0] portb_sel, regW_sel, wMemReg_sel,
@@ -33,7 +33,7 @@ module control_unit
    always_comb
      begin
 	//JR
-	if(rinstr.funct == JR)
+	if(rinstr.opcode == RTYPE && rinstr.funct == JR)
 	  jr = 1'b1;
 	else
 	  jr = 1'b0;
@@ -108,10 +108,10 @@ module control_unit
 	// 101 -> npc from memory
 	if(!btb_correct)
 	  pc_sel = (btb_wrongtype) ? 3'b101 : 3'b100;
+	else if(jrTake)
+	  pc_sel = 3'b001;
 	else if((iinstr.opcode == BEQ || iinstr.opcode == BNE) & brTake)
 	  pc_sel = 3'b011;
-	else if(rinstr.opcode == RTYPE && rinstr.funct == JR)
-	  pc_sel = 3'b001;
 	else if(iinstr.opcode == JAL || iinstr.opcode == J)
 	  pc_sel = 3'b010;
 	else

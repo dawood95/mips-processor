@@ -36,7 +36,7 @@ module datapath (
    //Local signals
    
    word_t npc, npc_ff, immExt;
-   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, btb_correct, btb_wrongtype, jrWait;
+   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, btb_correct, btb_wrongtype;
    logic [1:0] 		     regW_sel;
    
    i_t iinstr;
@@ -50,7 +50,7 @@ module datapath (
      begin
 	case(decode.pc_sel)
 	  3'b000: ifetch.imemAddr = npc_ff; 
-	  3'b001: ifetch.imemAddr = decode.jraddr;//decode.regData1;
+	  3'b001: ifetch.imemAddr = exec.jraddr;//decode.regData1;
 	  3'b010: ifetch.imemAddr = decode.jAddr;
 	  3'b011: ifetch.imemAddr = decode.btb_target;
 	  3'b100: ifetch.imemAddr = mem.brTarget;
@@ -132,6 +132,7 @@ module datapath (
 			     .bne(decode.bne),
 			     .jal(decode.jal),
 			     .jr(decode.jr),
+			     .jrTake(exec.jr),
 			     .brTake(decode.btb_taken),
 			     .btb_correct(btb_correct),
 			     .btb_wrongtype(btb_wrongtype),
@@ -187,6 +188,7 @@ module datapath (
 	     exec.regWen <= 0;
 	     exec.beq <= 0;
 	     exec.bne <= 0;
+	     exec.jr <= 0;
 	     exec.jal <= 0;
 	     exec.pc <= 0;
 	     exec.dHalt <= 0;
@@ -199,6 +201,7 @@ module datapath (
 		  exec.memRen <= decode.memRen;
 		  exec.memWen <= decode.memWen;
 		  exec.regWen <= decode.regWen;
+		  exec.jr <= decode.jr;
 		  exec.jal <= decode.jal;
 		  exec.dHalt <= decode.halt;
 		  exec.rs <= rinstr.rs;
@@ -212,6 +215,7 @@ module datapath (
 		  exec.memRen <= 0;
 		  exec.memWen <= 0;
 		  exec.regWen <= 0;
+		  exec.jr <= 0;
 		  exec.jal <= 0;
 		  exec.dHalt <= 0;
 		  exec.rs <= 0;
@@ -229,6 +233,7 @@ module datapath (
 	     exec.aluOp <= decode.aluOp;
 	     exec.regDataSel <= decode.regDataSel;
 	     exec.regDest <= decode.regDest;
+	     exec.regData1 <= decode.regData1;
 	     exec.regData2 <= decode.regData2;	
 	     exec.btb_index <= decode.btb_index;
 	     exec.btb_target <= decode.btb_target;
@@ -275,12 +280,13 @@ module datapath (
 	else
 	  exec.storeData = exec.regData2;
 
-	if((rinstr.rs == mem.regDest) & mem.regWen & !mem.memRen)
-	  decode.jraddr = (mem.jal) ? mem.pc : mem.aluOut;
-	else if((rinstr.rs == regw.regDest) & mem.regWen)
-	  decode.jraddr = regw.regData;
+	if((exec.rs == mem.regDest) & mem.regWen & !mem.memRen)
+	  exec.jraddr = (mem.jal) ? mem.pc : mem.aluOut;
+	else if((exec.rs == regw.regDest) & mem.regWen)
+	  exec.jraddr = regw.regData;
 	else
-	  decode.jraddr = decode.regData1;
+	  exec.jraddr = exec.regData1;
+	
      end // always_comb
    
    /***********************************************************************
@@ -436,9 +442,7 @@ module datapath (
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
 
-	jrWait = (decode.jr & (exec.regDest == rinstr.rs) & exec.regWen) ? 1 : 0;
-		
-	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen & !jrWait;
+	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
 	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
 		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
 	//!((mem.memRen | mem.memWen) & brTake);
@@ -447,7 +451,7 @@ module datapath (
 	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
 
 	ifde_en = 1'b1;//btb_correct;
-	deex_en = !mem.memRen & !mem.memWen & btb_correct;
+	deex_en = !mem.memRen & !mem.memWen & btb_correct & !exec.jr;
 	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct;
 	//memwb
 	  

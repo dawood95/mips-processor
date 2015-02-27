@@ -5,8 +5,8 @@
 
 	org 0x0000
 	ori $29, $0, 0xFFFC
-	ori $4, $0, 0x0002
-	ori $5, $0, 0x0008
+	ori $4, $0, 0x0001
+	ori $5, $0, 0x0001
 	push $4
 	push $5
 	jal mult
