@@ -50,7 +50,10 @@ module br_predict
      begin
 	if(!nRST)
 	  begin
-	     twoBitSat <= '{default:'{NTAKE2}};
+	     twoBitSat[0] <= NTAKE2;
+	     twoBitSat[1] <= NTAKE2;
+	     twoBitSat[2] <= NTAKE2;
+	     twoBitSat[3] <= NTAKE2;
 	     isValid <= '{default:'0};
 	  end
 	else if(br)
