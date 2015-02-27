@@ -50,7 +50,7 @@ module datapath (
      begin
 	case(decode.pc_sel)
 	  3'b000: ifetch.imemAddr = npc_ff; 
-	  3'b001: ifetch.imemAddr = exec.jraddr;//decode.regData1;
+	  3'b001: ifetch.imemAddr = mem.jraddr;//decode.regData1;
 	  3'b010: ifetch.imemAddr = decode.jAddr;
 	  3'b011: ifetch.imemAddr = decode.btb_target;
 	  3'b100: ifetch.imemAddr = mem.brTarget;
@@ -69,8 +69,8 @@ module datapath (
 	  npc_ff <= PC_INIT;
 	else if((pcEn_ifde & ifde_en))
 	  npc_ff <= npc;
-	else if(pcEn_exmem & exmem_en & exec.jr)
-	  npc_ff <= exec.jraddr;
+	//else if(pcEn_exmem & exmem_en & exec.jr)
+	  //npc_ff <= exec.jraddr;
      end
 
    br_predict BTB(
@@ -134,7 +134,7 @@ module datapath (
 			     .bne(decode.bne),
 			     .jal(decode.jal),
 			     .jr(decode.jr),
-			     .jrTake(exec.jr),
+			     .jrTake(mem.jr),
 			     .brTake(decode.btb_taken),
 			     .btb_correct(btb_correct),
 			     .btb_wrongtype(btb_wrongtype),
@@ -307,6 +307,7 @@ module datapath (
 	     mem.pc <= PC_INIT;
 	     mem.regDataSel <= 0;
 	     mem.regDest <= 0;
+	     mem.jr <= 0;
 	     mem.jal <= 0;
 	     mem.zf <= 0;
 	     mem.beq <= 0;
@@ -321,6 +322,7 @@ module datapath (
 		  mem.memWen <= exec.memWen;
 		  mem.regWen <= exec.regWen;
 		  mem.halt <= exec.eHalt;
+		  mem.jr <= exec.jr;
 		  mem.jal <= exec.jal;
 		  mem.zf <= alif.zf;
 		  mem.beq <= exec.beq;
@@ -333,6 +335,7 @@ module datapath (
 		  mem.memWen <= 0;
 		  mem.regWen <= 0;
 		  mem.halt <= 0;
+		  mem.jr <= 0;
 		  mem.jal <= 0;
 		  mem.zf <= 0;
 		  mem.beq <= 0;
@@ -340,6 +343,7 @@ module datapath (
 		  mem.btb_taken <= 0;
 	       end // else: !if(exmem_en)
 	     mem.aluOut <= exec.aluOut;
+	     mem.jraddr <= exec.jraddr;
 	     mem.pc <= exec.pc;
 	     mem.regDataSel <= exec.regDataSel;
 	     mem.regDest <= exec.regDest;
@@ -453,8 +457,8 @@ module datapath (
 	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
 
 	ifde_en = 1'b1;//btb_correct;
-	deex_en = !mem.memRen & !mem.memWen & btb_correct & !exec.jr;
-	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct;
+	deex_en = !mem.memRen & !mem.memWen & btb_correct & !mem.jr;
+	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
 	//memwb
 	  
 	//pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 

@@ -15,7 +15,7 @@ package pipeline_if;
    import cpu_types_pkg::*;
    
    //Instruction fetch
-   typedef struct {
+   typedef struct packed {
       //Instruction & PC
       word_t      imemAddr;
       word_t      instr;
@@ -104,10 +104,12 @@ package pipeline_if;
       //Instruction
       word_t      pc;
       logic 	  jal;
+      logic 	  jr;
       logic       beq;
       logic 	  bne;
       logic       brTake;
       word_t      brAddr;
+      word_t      jraddr;
       word_t      brTarget;	  
       //Branch
       logic 	  btb_taken;
