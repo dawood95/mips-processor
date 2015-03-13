@@ -16,7 +16,10 @@
 module dcache_tb;
 
    parameter PERIOD = 20;
-
+   parameter CPUS = 2;
+   parameter CPUID = 0;
+		    
+   
    logic CLK = 1, nRST;
 
    always #(PERIOD/2) CLK++;
@@ -31,8 +34,11 @@ module dcache_tb;
 
    always@(dcif.dhit)
      begin
-	$display("************\n%d\nCLK = %d\ndhit = %d\n******",$time,count,dcif.dhit);
-	count = 0;
+	if(dcif.dhit)
+	  begin
+	     $display("************\n%d\nCLK = %d\ndhit = %d\n******",$time,count,dcif.dhit);
+	     count = 0;
+	  end
      end
   
    assign ramif.ramWEN = ccif.ramWEN;
@@ -78,11 +84,14 @@ program test(
 	$display("Test 1\n");
 	dcif.dmemREN = 1'b1;
 	dcif.dmemaddr = 32'h00000300;
+	
 	$display("READING %h",dcif.dmemaddr);
 	if(!dcif.dhit)
 	  @(posedge dcif.dhit);
 	@(posedge CLK);
 	$display("Data = %h",dcif.dmemload);
+	
+	@(posedge CLK);
 	dcif.dmemaddr = 32'h00000304;
 	$display("READING %h",dcif.dmemaddr);
 	if(!dcif.dhit)
@@ -91,34 +100,87 @@ program test(
 	$display("Data = %h",dcif.dmemload);
 	dcif.dmemREN = 1'b0;
 	@(posedge CLK);
+	
 	@(posedge CLK);
 	dcif.dmemREN = 1'b1;
-	dcif.dmemaddr += 32'h00000004;
+	dcif.dmemaddr = 32'h00000200;
 	$display("READING %h",dcif.dmemaddr);
 	if(!dcif.dhit)
 	  @(posedge dcif.dhit);
 	@(posedge CLK);
 	$display("Data = %h",dcif.dmemload);
-	dcif.dmemREN = 1'b0;
 	@(posedge CLK);
-	@(posedge CLK);
-	dcif.dmemWEN = 1'b1;
-	dcif.dmemaddr = 32'h00000500;
-	dcif.dmemstore = 32'habcdef12;
+	dcif.dmemaddr = 32'h00000204;
 	$display("READING %h",dcif.dmemaddr);
 	if(!dcif.dhit)
 	  @(posedge dcif.dhit);
 	@(posedge CLK);
-	//dump_memory();
-	$finish;
+	$display("Data = %h",dcif.dmemload);
+	@(posedge CLK);
+	dcif.dmemREN = 1'b0;
+	@(posedge CLK);
+	dcif.dmemWEN = 1'b1;
+	dcif.dmemaddr = 32'h00000300;
+	dcif.dmemstore = 32'habcdef12;
+	$display("WRITING %h to %h",dcif.dmemstore,dcif.dmemaddr);
+	if(!dcif.dhit)
+	  @(posedge dcif.dhit);
+	@(posedge CLK);
+
+	dcif.dmemaddr = 32'h0000304;
+	dcif.dmemstore = 32'habcdef13;
+	$display("WRITING %h to %h",dcif.dmemstore,dcif.dmemaddr);
+	if(!dcif.dhit)
+	  @(posedge dcif.dhit);
+	@(posedge CLK);
+	dcif.dmemaddr = 32'h00000200;
+	dcif.dmemstore = 32'habcdef14;
+	$display("WRITING %h to %h",dcif.dmemstore,dcif.dmemaddr);
+	if(!dcif.dhit)
+	  @(posedge dcif.dhit);
+	@(posedge CLK);
+	dcif.dmemWEN = 1'b0;
+	@(posedge CLK);
+	dcif.dmemREN = 1'b1;
+	dcif.dmemaddr = 32'h00000100;
+	$display("READING %h",dcif.dmemaddr);
+	if(!dcif.dhit)
+	  @(posedge dcif.dhit);
+	@(posedge CLK);
+	$display("Data = %h",dcif.dmemload);
+	@(posedge CLK);
+	dcif.dmemREN = 1'b1;
+	dcif.dmemaddr = 32'h00000108;
+	$display("READING %h",dcif.dmemaddr);
+	@(posedge dcif.dhit);
+	@(posedge CLK);
+	$display("Data = %h",dcif.dmemload);
+	dcif.dmemaddr = 32'h00000300;
+	$display("READING %h",dcif.dmemaddr);
+	@(posedge dcif.dhit);
+	@(posedge CLK);
+	$display("Data = %h",dcif.dmemload);
+	@(posedge CLK);
+		@(posedge CLK);
+	dcif.dmemaddr = 32'h00000304;
+	$display("READING %h",dcif.dmemaddr);
+	if(!dcif.dhit)
+	  @(posedge dcif.dhit);
+	@(posedge CLK);
+	$display("Data = %h",dcif.dmemload);
+	@(posedge CLK);
+	
+	dcif.dmemREN = 1'b0;
+	
+//	ldb0->ldb1->wrb0->wrb1->ld0(shit)->ld1(shit)->ldb0
      end
 
-   task automatic dump_memory();
+      task automatic dump_memory();
       string filename = "memcpu.hex";
       int    memfd;
-      dcif.dmemaddr = 0;
-      dcif.dmemWEN = 0;
-      dcif.dmemREN = 0;
+      ccif.daddr[0] = 0;
+      ccif.dWEN[0] = 0;
+      ccif.dREN[0] = 0;
       memfd = $fopen(filename,"w");
       if (memfd)
 	$display("Starting memory dump.");
@@ -129,26 +191,25 @@ program test(
 	   int chksum = 0;
 	   bit [7:0][7:0] values;
 	   string 	  ihex;
-	   dcif.dmemaddr = i << 2;
-	   dcif.dmemREN = 1;
+	   ccif.daddr[0] = i << 2;
+	   ccif.dREN[0] = 1;
 	   repeat (4) @(posedge CLK);
-	   if (dcif.dmemload === 0)
+	   if (ccif.dload[0] === 0)
              continue;
-	   values = {8'h04,16'(i),8'h00,dcif.dmemload};
+	   values = {8'h04,16'(i),8'h00,ccif.dload[0]};
 	   foreach (values[j])
              chksum += values[j];
 	   chksum = 16'h100 - chksum;
-	   ihex = $sformatf(":04%h00%h%h",16'(i),dcif.dmemload,8'(chksum));
+	   ihex = $sformatf(":04%h00%h%h",16'(i),ccif.dload[0],8'(chksum));
 	   $fdisplay(memfd,"%s",ihex.toupper());
 	end //for
       if (memfd)
 	begin
-	   dcif.dmemREN = 0;
+	   ccif.dREN[0] = 0;
 	   $fdisplay(memfd,":00000001FF");
 	   $fclose(memfd);
 	   $display("Finished memory dump.");
 	end
-      endtask // dump_memory
-   
+      endtask
 endprogram // test
    

@@ -14,6 +14,8 @@ module dcache (
 	       datapath_cache_if.dcache dcif,
 	       cache_control_if.dcache ccif
 	       );
+   parameter CPUS = 2;
+   parameter CPUID = 0;
    // Import types
    import cpu_types_pkg::*;
 
@@ -36,9 +38,7 @@ module dcache (
 			     memwrite1,
 			     memwrite2,
 			     memload1,
-			     memload2,
-			     flush,
-			     halt
+			     memload2
 			     } dstate_t;
    
    dstate_t 		   currentState, nextState;		   
@@ -49,9 +49,7 @@ module dcache (
    logic 		   wen;
    logic 		   membsel;
    logic 		   bsel;
-   logic [2:0] 		   flushidx;
-   logic [2:0] 		   flushidx_next;		   
-   
+
    always_ff @ (posedge CLK, negedge nRST)
      begin
 	if(!nRST)
@@ -59,9 +57,10 @@ module dcache (
 	     currentState <= idle;
 	     frame <= '{default:'0};
 	     membsel <= 0;
-	     flushidx <= 0;
 	  end
-/*	     frame[0].block[1].valid <= 1'b0;
+	else if(dcif.halt)
+	  begin
+	     frame[0].block[1].valid <= 1'b0;
 	     frame[1].block[0].valid <= 1'b0;
 	     frame[1].block[1].valid <= 1'b0;
 	     frame[2].block[0].valid <= 1'b0;
@@ -76,7 +75,7 @@ module dcache (
 	     frame[6].block[1].valid <= 1'b0;
 	     frame[7].block[0].valid <= 1'b0;
 	     frame[7].block[1].valid <= 1'b0;
-*/
+	  end
 	else
 	  begin
 	     currentState <= nextState;
@@ -93,7 +92,7 @@ module dcache (
 		 end
 	       memload1:
 		 begin
-		    frame[addr.idx].block[bsel].data[~addr.blkoff] <= ccif.dload;
+		    frame[addr.idx].block[bsel].data[~addr.blkoff] <= ccif.dload[CPUID];
 		    frame[addr.idx].block[bsel].tag <= addr.tag;
 		    frame[addr.idx].block[bsel].modified <= 1'b0;
 		    frame[addr.idx].block[bsel].valid <= 1'b1;
@@ -102,7 +101,7 @@ module dcache (
 		 begin
 		    if(dcif.dmemREN)
 		      begin
-			 frame[addr.idx].block[bsel].data[addr.blkoff] <= ccif.dload;
+			 frame[addr.idx].block[bsel].data[addr.blkoff] <= ccif.dload[CPUID];
 			 frame[addr.idx].block[bsel].tag <= addr.tag;
 			 frame[addr.idx].block[bsel].modified <= 1'b0;
 			 frame[addr.idx].block[bsel].valid <= 1'b1;
@@ -114,10 +113,6 @@ module dcache (
 			 frame[addr.idx].block[bsel].modified <= 1'b1;
 			 frame[addr.idx].block[bsel].valid <= 1'b1;
 		      end
-		 end // case: memload2
-	       flush:
-		 begin
-		    flushidx <= flushidx_next;
 		 end
 	     endcase
 
@@ -128,8 +123,7 @@ module dcache (
    always_comb
      begin
 	addr = dcif.dmemaddr;	
-	flushidx_next = flushidx;
-	
+
 	case(currentState)
 	  idle: begin
 	     if(dcif.dmemWEN)
@@ -141,10 +135,10 @@ module dcache (
 		       bsel = 1'b0;
 		       wen = 1'b1;
 
-		       ccif.dREN = 1'b0;
-		       ccif.dWEN = 1'b0;
-		       ccif.dstore = 32'hbad1bad1;
-		       ccif.daddr = 32'b0;
+		       ccif.dREN[CPUID] = 1'b0;
+		       ccif.dWEN[CPUID] = 1'b0;
+		       ccif.dstore[CPUID] = 32'hbad1bad1;
+		       ccif.daddr[CPUID] = 32'b0;
 
 		       dcif.dmemload = 32'hbad1bad1;
 		       dcif.dhit = 1'b1;
@@ -156,10 +150,10 @@ module dcache (
 			 bsel = 1'b1;
 			 wen = 1'b1;
 			 
-			 ccif.dREN = 1'b0;
-			 ccif.dWEN = 1'b0;
-			 ccif.dstore = 32'hbad1bad1;
-			 ccif.daddr = 32'b0;
+			 ccif.dREN[CPUID] = 1'b0;
+			 ccif.dWEN[CPUID] = 1'b0;
+			 ccif.dstore[CPUID] = 32'hbad1bad1;
+			 ccif.daddr[CPUID] = 32'b0;
 			 
 			 dcif.dmemload = 32'hbad1bad1;
 			 dcif.dhit = 1'b1;
@@ -172,10 +166,10 @@ module dcache (
 			      bsel = 1'b0;
 			      wen = 1'b0;
 			      
-			      ccif.dREN = 1'b0;
-			      ccif.dWEN = 1'b0;
-			      ccif.dstore = 32'hbad1bad1;
-			      ccif.daddr = 32'b0;
+			      ccif.dREN[CPUID] = 1'b0;
+			      ccif.dWEN[CPUID] = 1'b0;
+			      ccif.dstore[CPUID] = 32'hbad1bad1;
+			      ccif.daddr[CPUID] = 32'b0;
 			      
 			      dcif.dmemload = 32'hbad1bad1;
 			      dcif.dhit = 1'b0;
@@ -186,10 +180,10 @@ module dcache (
 			      bsel = 1'b1;
 			      wen = 1'b0;
 			      
-			      ccif.dREN = 1'b0;
-			      ccif.dWEN = 1'b0;
-			      ccif.dstore = 32'hbad1bad1;
-			      ccif.daddr = 32'b0;
+			      ccif.dREN[CPUID] = 1'b0;
+			      ccif.dWEN[CPUID] = 1'b0;
+			      ccif.dstore[CPUID] = 32'hbad1bad1;
+			      ccif.daddr[CPUID] = 32'b0;
 			      
 			      dcif.dmemload = 32'hbad1bad1;
 			      dcif.dhit = 1'b0;
@@ -202,10 +196,10 @@ module dcache (
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
-				   ccif.dREN = 1'b0;
-				   ccif.dWEN = 1'b0;
-				   ccif.dstore = 32'hbad1bad1;
-				   ccif.daddr = 32'b0;
+				   ccif.dREN[CPUID] = 1'b0;
+				   ccif.dWEN[CPUID] = 1'b0;
+				   ccif.dstore[CPUID] = 32'hbad1bad1;
+				   ccif.daddr[CPUID] = 32'b0;
 				   
 				   dcif.dmemload = 32'hbad1bad1;
 				   dcif.dhit = 1'b0;
@@ -216,10 +210,10 @@ module dcache (
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
-				   ccif.dREN = 1'b0;
-				   ccif.dWEN = 1'b0;
-				   ccif.dstore = 32'hbad1bad1;
-				   ccif.daddr = 32'b0;
+				   ccif.dREN[CPUID] = 1'b0;
+				   ccif.dWEN[CPUID] = 1'b0;
+				   ccif.dstore[CPUID] = 32'hbad1bad1;
+				   ccif.daddr[CPUID] = 32'b0;
 				   
 				   dcif.dmemload = 32'hbad1bad1;
 				   dcif.dhit = 1'b0;
@@ -236,10 +230,10 @@ module dcache (
 			 bsel = 1'b0;
 			 wen = 1'b0;
 			 
-			 ccif.dREN = 1'b0;
-			 ccif.dWEN = 1'b0;
-			 ccif.dstore = 32'hbad1bad1;
-			 ccif.daddr = 32'b0;
+			 ccif.dREN[CPUID] = 1'b0;
+			 ccif.dWEN[CPUID] = 1'b0;
+			 ccif.dstore[CPUID] = 32'hbad1bad1;
+			 ccif.daddr[CPUID] = 32'b0;
 			 
 			 dcif.dmemload = frame[addr.idx].block[0].data[addr.blkoff];
 			 dcif.dhit = 1'b1;
@@ -251,10 +245,10 @@ module dcache (
 			 bsel = 1'b0;
 			 wen = 1'b0;
 			 
-			 ccif.dREN = 1'b0;
-			 ccif.dWEN = 1'b0;
-			 ccif.dstore = 32'hbad1bad1;
-			 ccif.daddr = 32'b0;
+			 ccif.dREN[CPUID] = 1'b0;
+			 ccif.dWEN[CPUID] = 1'b0;
+			 ccif.dstore[CPUID] = 32'hbad1bad1;
+			 ccif.daddr[CPUID] = 32'b0;
 			 
 			 dcif.dmemload = frame[addr.idx].block[1].data[addr.blkoff];
 			 dcif.dhit = 1'b1;
@@ -267,10 +261,10 @@ module dcache (
 			      bsel = 1'b0;
 			      wen = 1'b0;
 			      
-			      ccif.dREN = 1'b0;
-			      ccif.dWEN = 1'b0;
-			      ccif.dstore = 32'hbad1bad1;
-			      ccif.daddr = 32'b0;
+			      ccif.dREN[CPUID] = 1'b0;
+			      ccif.dWEN[CPUID] = 1'b0;
+			      ccif.dstore[CPUID] = 32'hbad1bad1;
+			      ccif.daddr[CPUID] = 32'b0;
 			      
 			      dcif.dmemload = 32'hbad1bad1;
 			      dcif.dhit = 1'b0;
@@ -281,10 +275,10 @@ module dcache (
 			      bsel = 1'b1;
 			      wen = 1'b0;
 			      
-			      ccif.dREN = 1'b0;
-			      ccif.dWEN = 1'b0;
-			      ccif.dstore = 32'hbad1bad1;
-			      ccif.daddr = 32'b0;
+			      ccif.dREN[CPUID] = 1'b0;
+			      ccif.dWEN[CPUID] = 1'b0;
+			      ccif.dstore[CPUID] = 32'hbad1bad1;
+			      ccif.daddr[CPUID] = 32'b0;
 			      
 			      dcif.dmemload = 32'hbad1bad1;
 			      dcif.dhit = 1'b0;
@@ -297,10 +291,10 @@ module dcache (
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
-				   ccif.dREN = 1'b0;
-				   ccif.dWEN = 1'b0;
-				   ccif.dstore = 32'hbad1bad1;
-				   ccif.daddr = 32'b0;
+				   ccif.dREN[CPUID] = 1'b0;
+				   ccif.dWEN[CPUID] = 1'b0;
+				   ccif.dstore[CPUID] = 32'hbad1bad1;
+				   ccif.daddr[CPUID] = 32'b0;
 				   
 				   dcif.dmemload = 32'hbad1bad1;
 				   dcif.dhit = 1'b0;
@@ -311,10 +305,10 @@ module dcache (
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
-				   ccif.dREN = 1'b0;
-				   ccif.dWEN = 1'b0;
-				   ccif.dstore = 32'hbad1bad1;
-				   ccif.daddr = 32'b0;
+				   ccif.dREN[CPUID] = 1'b0;
+				   ccif.dWEN[CPUID] = 1'b0;
+				   ccif.dstore[CPUID] = 32'hbad1bad1;
+				   ccif.daddr[CPUID] = 32'b0;
 				   
 				   dcif.dmemload = 32'hbad1bad1;
 				   dcif.dhit = 1'b0;
@@ -322,32 +316,16 @@ module dcache (
 			   end
 		      end // else: !if(!(frame[addr.idx].block[1].tag ^ addr.tag) &...
 		 end // if (dcif.dmemREN)
-	       else if(dcif.halt)
-		 begin
-		    nextState = flush;
-		    bsel = 1'b0;
-		    wen = 1'b0;
-		    
-		    ccif.dREN = 1'b0;
-		    ccif.dWEN = 1'b0;
-		    ccif.dstore = 32'hbad1bad1;
-		    ccif.daddr = 32'b0;
-		    
-		    dcif.dmemload = 32'hbad1bad1;
-		    dcif.dhit = 1'b0;
-
-		    flushidx_next = 0;
-		 end
 	       else
 		 begin
 		    nextState = idle;
 		    bsel = 1'b0;
 		    wen = 1'b0;
 		    
-		    ccif.dREN = 1'b0;
-		    ccif.dWEN = 1'b0;
-		    ccif.dstore = 32'hbad1bad1;
-		    ccif.daddr = 32'b0;
+		    ccif.dREN[CPUID] = 1'b0;
+		    ccif.dWEN[CPUID] = 1'b0;
+		    ccif.dstore[CPUID] = 32'hbad1bad1;
+		    ccif.daddr[CPUID] = 32'b0;
 		    
 		    dcif.dmemload = 32'hbad1bad1;
 		    dcif.dhit = 1'b0;
@@ -355,17 +333,17 @@ module dcache (
 	    end // case: idle
 	  memwrite1:
 	    begin
-	       if(ccif.dwait) 
+	       if(ccif.dwait[CPUID]) 
 		 nextState = memwrite1;
 	       else 
 		 nextState = memwrite2;
-	       nextState = (ccif.dwait) ? memwrite1 : memwrite2;
+
 	       bsel = membsel;
 	       wen = 1'b0;
 	       
-	       ccif.dREN = 1'b0;
-	       ccif.dWEN = 1'b1;
-	       ccif.dstore = frame[addr.idx].block[membsel].data[0];
+	       ccif.dREN[CPUID] = 1'b0;
+	       ccif.dWEN[CPUID] = 1'b1;
+	       ccif.dstore[CPUID] = frame[addr.idx].block[membsel].data[0];
 	       ccif.daddr = {frame[addr.idx].block[membsel].tag,addr.idx,1'b0,addr.bytoff};
 	       
 	       dcif.dmemload = 32'hbad1bad1;
@@ -373,7 +351,7 @@ module dcache (
 	    end
 	  memwrite2:
 	    begin
-	       if(ccif.dwait) 
+	       if(ccif.dwait[CPUID]) 
 		 nextState = memwrite2; 
 	       else 
 		 nextState = memload1;
@@ -381,9 +359,9 @@ module dcache (
 	       bsel = membsel;
 	       wen = 1'b0;
 	       
-	       ccif.dREN = 1'b0;
-	       ccif.dWEN = 1'b1;
-	       ccif.dstore = frame[addr.idx].block[membsel].data[1];
+	       ccif.dREN[CPUID] = 1'b0;
+	       ccif.dWEN[CPUID] = 1'b1;
+	       ccif.dstore[CPUID] = frame[addr.idx].block[membsel].data[1];
 	       ccif.daddr = {frame[addr.idx].block[membsel].tag,addr.idx,1'b1,addr.bytoff};
 	       
 	       dcif.dmemload = 32'hbad1bad1;
@@ -391,7 +369,7 @@ module dcache (
 	    end
 	  memload1:
 	    begin
-	       if(ccif.dwait) 
+	       if(ccif.dwait[CPUID]) 
 		 nextState = memload1; 
 	       else 
 		 nextState = memload2;
@@ -399,9 +377,9 @@ module dcache (
 	       bsel = membsel;
 	       wen = 1'b1;
 	       
-	       ccif.dREN = 1'b1;
-	       ccif.dWEN = 1'b0;
-	       ccif.dstore = 32'hbad1bad1;
+	       ccif.dREN[CPUID] = 1'b1;
+	       ccif.dWEN[CPUID] = 1'b0;
+	       ccif.dstore[CPUID] = 32'hbad1bad1;
 	       ccif.daddr = {addr.tag,addr.idx,~addr.blkoff,addr.bytoff};
 	       
 	       dcif.dmemload = 32'hbad1bad1;
@@ -409,7 +387,7 @@ module dcache (
 	    end
 	  memload2:
 	    begin
-	       if(ccif.dwait) 
+	       if(ccif.dwait[CPUID]) 
 		 nextState = memload2; 
 	       else 
 		 nextState = idle;
@@ -417,38 +395,18 @@ module dcache (
 	       bsel = membsel;
 	       wen = 1'b1;
 	       
-	       ccif.dREN = 1'b1;
-	       ccif.dWEN = 1'b0;
-	       ccif.dstore = 32'hbad1bad1;
+	       ccif.dREN[CPUID] = 1'b1;
+	       ccif.dWEN[CPUID] = 1'b0;
+	       ccif.dstore[CPUID] = 32'hbad1bad1;
 	       ccif.daddr = {addr.tag,addr.idx,addr.blkoff,addr.bytoff};
 	       
-	       dcif.dmemload = ccif.dload;
-	       dcif.dhit = ~(ccif.dwait);
+	       dcif.dmemload = ccif.dload[CPUID];
+	       dcif.dhit = ~(ccif.dwait[CPUID]);
 	       
-	       //dcif.dmemload = frame[addr.idx].block[1].data[addr.blkoff];
-	    end // case: memload2
-	  flush:
-	    begin
-	       bsel = ~membsel;
-	       flushidx_next = 0;
-
-	       if(ccif.dwait) 
-		 nextState = memwrite1;
-	       else 
-		 nextState = memwrite2;
-	       nextState = (ccif.dwait) ? memwrite1 : memwrite2;
-	       bsel = membsel;
-	       wen = 1'b0;
-	       
-	       ccif.dREN = 1'b0;
-	       ccif.dWEN = 1'b1;
-	       ccif.dstore = frame[addr.idx].block[membsel].data[0];
-	       ccif.daddr = {frame[addr.idx].block[membsel].tag,addr.idx,1'b0,addr.bytoff};
-	       
-	       dcif.dmemload = 32'hbad1bad1;
-	       dcif.dhit = 1'b0;
 	    end
 	endcase // case (currentState)
+	
+	  
      end
    
    
