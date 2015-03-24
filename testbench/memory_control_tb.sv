@@ -32,7 +32,7 @@ module memory_control_tb;
    
    test PROG (CLK,nRST,ccif);
 
-   memory_control DUT(ccif);
+   memory_control DUT(CLK, nRST, ccif);
    
    ram Ram (.CLK(CLK),
 	    .nRST(nRST),
