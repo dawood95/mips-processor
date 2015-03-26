@@ -37,25 +37,22 @@ add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/control_unit/ri
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/immExt
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/immExt_sel
 add wave -noupdate -expand -group Datapath /system_tb/DUT/CPU/DP/regW_sel
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/WEN
-add wave -noupdate -expand -group register -radix unsigned /system_tb/DUT/CPU/DP/rfif/wsel
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/rsel1
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/rsel2
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/wdat
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/rdat1
-add wave -noupdate -expand -group register /system_tb/DUT/CPU/DP/rfif/rdat2
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/nf
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/zf
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/of
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/porta
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/portb
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/out
-add wave -noupdate /system_tb/DUT/CPU/DP/alif/op
+add wave -noupdate -expand /system_tb/DUT/CPU/CM/DCACHE/frame
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/WEN
+add wave -noupdate -group register -radix unsigned /system_tb/DUT/CPU/DP/rfif/wsel
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/rsel1
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/rsel2
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/wdat
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/rdat1
+add wave -noupdate -group register /system_tb/DUT/CPU/DP/rfif/rdat2
 add wave -noupdate /system_tb/DUT/CPU/DP/ifetch
 add wave -noupdate /system_tb/DUT/CPU/DP/decode
 add wave -noupdate /system_tb/DUT/CPU/DP/exec
 add wave -noupdate /system_tb/DUT/CPU/DP/mem
 add wave -noupdate /system_tb/DUT/CPU/DP/regw
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/currentState
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/flush_frame
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/flush_block
 add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_ifde
 add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_deex
 add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_exmem
@@ -63,23 +60,11 @@ add wave -noupdate /system_tb/DUT/CPU/DP/pcEn_memregw
 add wave -noupdate /system_tb/DUT/CPU/DP/ifde_en
 add wave -noupdate /system_tb/DUT/CPU/DP/deex_en
 add wave -noupdate /system_tb/DUT/CPU/DP/exmem_en
-add wave -noupdate -expand /system_tb/DUT/CPU/DP/reg_file/register_f
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/CLK
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/nRST
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/instr
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/pr_correct
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/update_br_target
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/w_index
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/r_index
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/br_target
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/take_br
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/out_index
-add wave -noupdate -expand -group BTB /system_tb/DUT/CPU/DP/BTB/out_idx
-add wave -noupdate -expand /system_tb/DUT/CPU/DP/BTB/target
+add wave -noupdate /system_tb/DUT/CPU/DP/reg_file/register_f
 add wave -noupdate /system_tb/DUT/CPU/DP/btb_correct
 add wave -noupdate /system_tb/DUT/CPU/DP/btb_wrongtype
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {328013 ps} 0}
+WaveRestoreCursors {{Cursor 1} {872345 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 215
@@ -95,4 +80,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {215440 ps} {430884 ps}
+WaveRestoreZoom {786303 ps} {1001747 ps}

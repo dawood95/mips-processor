@@ -48,7 +48,7 @@ module datapath (
     ***********************************************************************/
    always_comb
      begin
-	unique case(decode.pc_sel)
+	case(decode.pc_sel)
 	  3'b000, 3'b110, 3'b111: ifetch.imemAddr = npc_ff; 
 	  3'b001: ifetch.imemAddr = mem.jraddr;//decode.regData1;
 	  3'b010: ifetch.imemAddr = decode.jAddr;
@@ -361,6 +361,7 @@ module datapath (
     *                                Memory                               *
     ***********************************************************************/
 
+   
    always_comb
      begin
 	mem.memData = dpif.dmemload;
@@ -449,13 +450,13 @@ module datapath (
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
 
-	pcEn_ifde = (dpif.ihit | dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
-	pcEn_deex = (dpif.ihit | dpif.dhit) & !dpif.halt &
+	pcEn_ifde = (dpif.ihit & dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
+	pcEn_deex = dpif.dhit & !dpif.halt &
 		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
 	//!((mem.memRen | mem.memWen) & brTake);
 	
-	pcEn_exmem = (dpif.ihit | dpif.dhit) & !dpif.halt;
-	pcEn_memregw = (dpif.ihit | dpif.dhit) & !dpif.halt;
+	pcEn_exmem = dpif.dhit & !dpif.halt;
+	pcEn_memregw = dpif.dhit & !dpif.halt;
 
 	ifde_en = 1'b1;//btb_correct;
 	deex_en = !mem.memRen & !mem.memWen & btb_correct & !mem.jr;
