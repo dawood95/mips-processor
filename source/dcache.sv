@@ -41,7 +41,10 @@ module dcache (
 			     memwrite1,
 			     memwrite2,
 			     memload1,
-			     memload2
+			     memload2,
+			     flush1,
+			     flush2,
+			     halt
 			     } dstate_t;
    
    dstate_t 		   currentState, nextState;		   
@@ -54,8 +57,8 @@ module dcache (
    // Flush signals
    logic [2:0] 		   flush_frame;
    logic [2:0] 		   next_flush_frame;
-   logic [2:0] 		   flush_block;
-   logic [2:0] 		   next_flush_block;		   
+   logic  		   flush_block;
+   logic  		   next_flush_block;		   
    
 
    always_ff @ (posedge CLK, negedge nRST)
@@ -65,35 +68,16 @@ module dcache (
 	     currentState <= idle;
 	     frame <= '{default:'0};
 	     membsel <= 0;
-	     flush_frame = 0;
-	     next_flush_frame = 0;
-	  end
-	else if(dcif.halt)
-	  begin
-	     if
-	     currentState <= ;
-	     /*
-	     frame[0].block[1].valid <= 1'b0;
-	     frame[1].block[0].valid <= 1'b0;
-	     frame[1].block[1].valid <= 1'b0;
-	     frame[2].block[0].valid <= 1'b0;
-	     frame[2].block[1].valid <= 1'b0;
-	     frame[3].block[0].valid <= 1'b0;
-	     frame[3].block[1].valid <= 1'b0;
-	     frame[4].block[0].valid <= 1'b0;
-	     frame[4].block[1].valid <= 1'b0;
-	     frame[5].block[0].valid <= 1'b0;
-	     frame[5].block[1].valid <= 1'b0;
-	     frame[6].block[0].valid <= 1'b0;
-	     frame[6].block[1].valid <= 1'b0;
-	     frame[7].block[0].valid <= 1'b0;
-	     frame[7].block[1].valid <= 1'b0;*/
+	     flush_frame <= 0;
+	     flush_block <= 0;
 	  end
 	else
 	  begin
 	     currentState <= nextState;
 	     membsel <= bsel;
-
+	     flush_frame <= next_flush_frame;
+	     flush_block <= next_flush_block;
+	     
 	     case(currentState)
 	       idle:
 		 begin
@@ -126,11 +110,31 @@ module dcache (
 			 frame[addr.idx].block[bsel].modified <= 1'b1;
 			 frame[addr.idx].block[bsel].valid <= 1'b1;
 		      end
+		 end // case: memload2
+	       flush2:
+		 begin
+		    if(nextState == halt)
+		      begin
+			 frame[0].block[1].valid <= 1'b0;
+			 frame[1].block[0].valid <= 1'b0;
+			 frame[1].block[1].valid <= 1'b0;
+			 frame[2].block[0].valid <= 1'b0;
+			 frame[2].block[1].valid <= 1'b0;
+			 frame[3].block[0].valid <= 1'b0;
+			 frame[3].block[1].valid <= 1'b0;
+			 frame[4].block[0].valid <= 1'b0;
+			 frame[4].block[1].valid <= 1'b0;
+			 frame[5].block[0].valid <= 1'b0;
+			 frame[5].block[1].valid <= 1'b0;
+			 frame[6].block[0].valid <= 1'b0;
+			 frame[6].block[1].valid <= 1'b0;
+			 frame[7].block[0].valid <= 1'b0;
+			 frame[7].block[1].valid <= 1'b0;
+		      end
 		 end
 	     endcase
-
 	     if(dcif.dhit) frame[addr.idx].leastrecent = ~bsel;
-	  end // else: !if(dcif.halt)
+	  end 
      end
 
    always_comb
@@ -141,7 +145,7 @@ module dcache (
 	  idle: begin
 	     if(dcif.halt)
 	       begin
-		  nextState = flush;
+		  nextState = flush1;
 		  next_flush_frame = 0;
 		  next_flush_block = 0;
 		  bsel = 1'b0;
@@ -155,12 +159,14 @@ module dcache (
 		  dcif.dmemload = 32'hbad1bad1;
 		  dcif.dhit = 1'b1;
 	       end
-	     if(dcif.dmemWEN)
+	     else if(dcif.dmemWEN)
 	       begin
 		  if(!(frame[addr.idx].block[0].tag ^ addr.tag) & 
 		     (frame[addr.idx].block[0].valid))
 		    begin
 		       nextState = idle;
+		       next_flush_frame = 0;
+		       next_flush_block = 0;
 		       bsel = 1'b0;
 		       wen = 1'b1;
 
@@ -176,6 +182,8 @@ module dcache (
 			    (frame[addr.idx].block[1].valid))
 		      begin
 			 nextState = idle;
+			 next_flush_frame = 0;
+			 next_flush_block = 0;
 			 bsel = 1'b1;
 			 wen = 1'b1;
 			 
@@ -192,6 +200,8 @@ module dcache (
 			 if(!frame[addr.idx].block[0].valid)
 			   begin
 			      nextState = memload1;
+			      next_flush_frame = 0;
+			      next_flush_block = 0;
 			      bsel = 1'b0;
 			      wen = 1'b0;
 			      
@@ -206,6 +216,8 @@ module dcache (
 			 else if(!frame[addr.idx].block[1].valid)
 			   begin
 			      nextState = memload1;
+			      next_flush_frame = 0;
+			      next_flush_block = 0;
 			      bsel = 1'b1;
 			      wen = 1'b0;
 			      
@@ -222,6 +234,8 @@ module dcache (
 			      if(frame[addr.idx].block[frame[addr.idx].leastrecent].modified)
 				begin
 				   nextState = memwrite1;
+				   next_flush_frame = 0;
+				   next_flush_block = 0;
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
@@ -236,6 +250,8 @@ module dcache (
 			      else
 				begin
 				   nextState = memload1;
+				   next_flush_frame = 0;
+				   next_flush_block = 0;
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
@@ -256,6 +272,8 @@ module dcache (
 		       (frame[addr.idx].block[0].valid))
 		      begin
 			 nextState = idle;
+			 next_flush_frame = 0;
+			 next_flush_block = 0;
 			 bsel = 1'b0;
 			 wen = 1'b0;
 			 
@@ -271,6 +289,8 @@ module dcache (
 			    (frame[addr.idx].block[1].valid))
 		      begin
 			 nextState = idle;
+			 next_flush_frame = 0;
+			 next_flush_block = 0;
 			 bsel = 1'b0;
 			 wen = 1'b0;
 			 
@@ -287,6 +307,8 @@ module dcache (
 			 if(!frame[addr.idx].block[0].valid)
 			   begin
 			      nextState = memload1;
+			      next_flush_frame = 0;
+			      next_flush_block = 0;
 			      bsel = 1'b0;
 			      wen = 1'b0;
 			      
@@ -301,6 +323,8 @@ module dcache (
 			 else if(!frame[addr.idx].block[1].valid)
 			   begin
 			      nextState = memload1;
+			      next_flush_frame = 0;
+			      next_flush_block = 0;			      
 			      bsel = 1'b1;
 			      wen = 1'b0;
 			      
@@ -317,6 +341,8 @@ module dcache (
 			      if(frame[addr.idx].block[frame[addr.idx].leastrecent].modified)
 				begin
 				   nextState = memwrite1;
+				   next_flush_frame = 0;
+				   next_flush_block = 0;
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
@@ -331,6 +357,8 @@ module dcache (
 			      else
 				begin
 				   nextState = memload1;
+				   next_flush_frame = 0;
+				   next_flush_block = 0;
 				   bsel = frame[addr.idx].leastrecent;
 				   wen = 1'b0;
 				   
@@ -348,6 +376,8 @@ module dcache (
 	       else
 		 begin
 		    nextState = idle;
+		    next_flush_frame = 0;
+		    next_flush_block = 0;
 		    bsel = 1'b0;
 		    wen = 1'b0;
 		    
@@ -366,7 +396,8 @@ module dcache (
 		 nextState = memwrite1;
 	       else 
 		 nextState = memwrite2;
-
+	       next_flush_frame = 0;
+	       next_flush_block = 0;
 	       bsel = membsel;
 	       wen = 1'b0;
 	       
@@ -384,7 +415,8 @@ module dcache (
 		 nextState = memwrite2; 
 	       else 
 		 nextState = memload1;
-
+	       next_flush_frame = 0;
+	       next_flush_block = 0;
 	       bsel = membsel;
 	       wen = 1'b0;
 	       
@@ -402,7 +434,8 @@ module dcache (
 		 nextState = memload1; 
 	       else 
 		 nextState = memload2;
-	       
+	       next_flush_frame = 0;
+	       next_flush_block = 0;
 	       bsel = membsel;
 	       wen = 1'b1;
 	       
@@ -420,7 +453,8 @@ module dcache (
 		 nextState = memload2; 
 	       else 
 		 nextState = idle;
-
+	       next_flush_frame = 0;
+	       next_flush_block = 0;
 	       bsel = membsel;
 	       wen = 1'b1;
 	       
@@ -431,11 +465,78 @@ module dcache (
 	       
 	       dcif.dmemload = ccif.dload;
 	       dcif.dhit = ~(ccif.dwait);	       
+	    end // case: memload2
+	  flush1:
+	    begin
+	       // If write going on, stay in current state
+	       if(ccif.dwait)
+		 nextState = flush1;
+	       else
+		 nextState = flush2;
+	       
+	       next_flush_frame = flush_frame;
+	       next_flush_block = flush_block;
+	       bsel = 1'b0;
+	       wen = 1'b0;
+
+	       ccif.dREN = 1'b0;
+	       ccif.dWEN = 1'b1;
+	       ccif.dstore = frame[flush_frame].block[flush_block].data[0];
+	       ccif.daddr = {frame[flush_frame].block[flush_block].tag,flush_frame,3'b000};
+
+	       dcif.dmemload = 32'hbad1bad1;
+	       dcif.dhit = 1'b0;
+	    end // case: flush1
+	  flush2:
+	    begin
+	       if(ccif.dwait) // Wait for write to be done
+		 begin
+		    nextState = flush2;
+		    next_flush_frame = flush_frame;
+		    next_flush_block = flush_block;
+		 end
+	       else if(~(flush_frame ^ 3'b111) & ~(flush_block ^ 1'b1)) // All flushed. Go to halt.
+		 begin
+		    nextState = halt;
+		    next_flush_frame = flush_frame;
+		    next_flush_block = flush_block;
+		 end
+	       else // Move onto next flush
+		 begin
+		    nextState = flush1;
+		    next_flush_frame = flush_frame + 3'd1;
+		    next_flush_block = flush_block ^ 1'b1;
+		 end
+
+	       bsel = 1'b0;
+	       wen = 1'b0;
+	       
+	       ccif.dREN = 1'b0;
+	       ccif.dWEN = 1'b1;
+	       ccif.dstore = frame[flush_frame].block[flush_block].data[1];
+	       ccif.daddr = {frame[flush_frame].block[flush_block].tag,flush_frame,3'b100};
+	       
+	       dcif.dmemload = 32'hbad1bad1;
+	       dcif.dhit = 1'b0;
+	    end // case: flush2
+	  halt:
+	    begin
+	       nextState = halt;
+	       next_flush_frame = 0;
+	       next_flush_block = 0;
+	       bsel = 1'b0;
+	       wen = 1'b0;
+
+	       ccif.dREN = 0;
+	       ccif.dWEN = 0;
+	       ccif.dstore = 32'hdeadbeef;
+	       ccif.daddr = 0;
+
+	       dcif.dmemload = 32'hdeadbeef;
+	       dcif.dhit = 1'b0;
 	    end
 	endcase // case (currentState)
-	
-	  
-     end
+     end // always_comb
    
    
 endmodule // dcache
