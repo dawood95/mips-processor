@@ -2,6 +2,12 @@ onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate /dcache_tb/CLK
 add wave -noupdate /dcache_tb/nRST
+add wave -noupdate /dcache_tb/DUT/flush_frame
+add wave -noupdate /dcache_tb/DUT/next_flush_frame
+add wave -noupdate /dcache_tb/DUT/flush_block
+add wave -noupdate /dcache_tb/DUT/next_flush_block
+add wave -noupdate /dcache_tb/DUT/count_en
+add wave -noupdate /dcache_tb/DUT/count
 add wave -noupdate -expand -group DUT /dcache_tb/DUT/currentState
 add wave -noupdate -expand -group DUT /dcache_tb/DUT/nextState
 add wave -noupdate -expand -group DUT /dcache_tb/DUT/addr
@@ -36,10 +42,10 @@ add wave -noupdate -expand -group RAM /dcache_tb/Ram/addr
 add wave -noupdate -expand -group RAM /dcache_tb/Ram/wren
 add wave -noupdate -expand -group RAM -expand /dcache_tb/Ram/en
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 6} {28331 ps} 0}
+WaveRestoreCursors {{Cursor 6} {430592 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 233
-configure wave -valuecolwidth 212
+configure wave -namecolwidth 132
+configure wave -valuecolwidth 135
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
 configure wave -snapdistance 10
@@ -52,4 +58,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {899121 ps}
+WaveRestoreZoom {430592 ps} {968832 ps}

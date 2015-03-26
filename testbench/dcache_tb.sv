@@ -169,9 +169,10 @@ program test(
 	@(posedge CLK);
 	$display("Data = %h",dcif.dmemload);
 	@(posedge CLK);
-	
 	dcif.dmemREN = 1'b0;
-	
+	dcif.halt = 1'b1;
+	@(posedge dcif.dhit);
+	$display("Done");
 //	ldb0->ldb1->wrb0->wrb1->ld0(shit)->ld1(shit)->ldb0
      end
 
