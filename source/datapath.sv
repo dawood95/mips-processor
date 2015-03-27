@@ -278,14 +278,14 @@ module datapath (
 
 	if((exec.rt == mem.regDest) & mem.regWen & !mem.memRen)
 	  exec.storeData = (mem.jal) ? mem.pc : mem.aluOut;
-	else if((exec.rt == regw.regDest) & mem.regWen)
+	else if((exec.rt == regw.regDest) & regw.regWen)
 	  exec.storeData = regw.regData;
 	else
 	  exec.storeData = exec.regData2;
 
 	if((exec.rs == mem.regDest) & mem.regWen & !mem.memRen)
 	  exec.jraddr = (mem.jal) ? mem.pc : mem.aluOut;
-	else if((exec.rs == regw.regDest) & mem.regWen)
+	else if((exec.rs == regw.regDest) & regw.regWen)
 	  exec.jraddr = regw.regData;
 	else
 	  exec.jraddr = exec.regData1;
