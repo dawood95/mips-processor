@@ -57,35 +57,41 @@ program test (
 	// initial reset
 	nRST = 1'b0;
 	#(PERIOD*2);
-	nRST = 1'b0;
+	nRST = 1'b1;
 	#(PERIOD*2);
 
 	// write instrs to ram for cach misses
 	// ccif.iaddr = 0;
 	// ccif.iREN = 0;
-	dcif.dmemREN = 1'b0;
-	dcif.dmemWEN = 1'b1;
-	dcif.imemREN = 1'b0;
-	dcif.dmemaddr = 32'd1000;
-	dcif.dmemstore = 32'hDEADBEEF;
-	#(PERIOD*5);
+	@(posedge CLK);
+	ccif.iaddr = 0;
+	ccif.iREN = 0;
+	ccif.dWEN = 1;
+	ccif.dREN = 0;
+	ccif.dstore = 32'hDEADBEEF;
+	ccif.daddr = 32'd1000;
+	#(PERIOD*2);
 
+	ccif.dWEN = 0;
+
+	// let icache state machine return to idle
+	#(PERIOD*4);
+ 
 	// TEST 1: first address, cache miss
 	testnum++;
 	addr = 32'd1000; // 1111 101000 in binary (idx = 1111)
 	dcif.imemREN = 1'b1;
-	dcif.dmemWEN = 1'b0;
 	dcif.imemaddr = 32'd1000;
 	#(PERIOD*2);
 	if (!dcif.ihit) // dcif.imemload == 32'hDEADBEEF)
           $display("TEST %2d passed", testnum);
 	else 
-	  $display("TEST %2d FAILED: read %h at addr %4d but should have been %h", testnum, dcif.imemload, addr, dcif.dmemstore);
+	  $display("TEST %2d FAILED: read %h at addr %4d but should have been %h", testnum, dcif.imemload, addr, 32'hDEADBEEF);
 
 	
 	// TEST 2: same address, cache hit
 	testnum++;
-	@(posedge dcif.ihit);
+	#(PERIOD*2);
 	if (dcif.imemload == 32'hDEADBEEF)
 	  $display("TEST %2d passed", testnum);
 	else 

@@ -21,75 +21,88 @@ module icache (
 
    parameter CPUID = 0;
 
-   
    typedef struct packed {
       logic 	  valid;
       logic [ITAG_W-1:0] tag;
       word_t data;
    } iblock_t;
 
+   typedef enum 	 logic
+			 {IDLE,
+			  RAMWAIT } istate_t;
+
+   istate_t state, nextState;
+   
    iblock_t [15:0] frames;
    icachef_t icache_addr;
    iblock_t blk; // local
-   logic 		 blk_valid; // local
-   logic 		 blk_matches;
    
-    
-
+   // state machine
    always_ff @(posedge CLK, negedge nRST)
      begin
 	if (!nRST)
 	  begin
 	     frames <= '{default:'0};
+	     state <= IDLE;
+	     
 	  end
-	else if (dcif.imemREN & ~dcif.ihit & ~ccif.iwait)
+	// fill cache if 
+	else
 	  begin
-	     frames[icache_addr.idx].data = ccif.iload;
-	     frames[icache_addr.idx].tag = icache_addr.tag;
-	     frames[icache_addr.idx].valid = 1;
-	  end	
+	     state <= nextState;
+
+	     // update cache on a miss
+	     case(state)
+	       IDLE: begin
+	       end
+	       RAMWAIT: begin
+	     	  frames[icache_addr.idx].data <= ccif.iload;
+		  frames[icache_addr.idx].tag <= icache_addr.tag;
+		  frames[icache_addr.idx].valid <= 1'b1;
+	       end
+	     endcase // case (state)
+	  end
      end
    
+   // output
    always_comb
      begin
 	// cast incoming address
 	icache_addr = icachef_t'(dcif.imemaddr);
-
 	blk = frames[icache_addr.idx];
-	
-	if (blk.valid & (blk.tag == icache_addr.tag))
-	  // hit
-	  begin
-	     blk_valid = 1;
-	     dcif.imemload = blk.data;
-	     ccif.iREN[CPUID] = 0;
-	     // dcif.ihit = ~ccif.iwait[CPUID];
-	  end
-	else
-	  // miss
-	  begin
-	     blk_valid = 0;
-	     ccif.iREN = 1;
-	     dcif.imemload = ccif.iload[CPUID];
-	     // dcif.ihit = 0;
-	     
- 	  end
-	
-	// allow for hits to eventually happen after a miss
-	dcif.ihit = blk_valid & dcif.imemREN;
-      
-	// constant output
 
+	case(state)
+	  IDLE: begin
+	     if (blk.valid & (blk.tag == icache_addr.tag))
+	       // hit
+	       begin
+		  dcif.ihit = 1'b1;
+		  dcif.imemload = blk.data;
+		  ccif.iREN = 0;
+		  nextState = IDLE;
+	       end
+	     else
+	       // miss
+	       begin
+		  dcif.ihit = 1'b0;
+		  ccif.iREN = 1'b0;
+		  dcif.imemload = 32'hbad1bad1;
+		  nextState = RAMWAIT;
+ 	       end
+	  end // case: IDLE
+	  RAMWAIT: begin
+	     ccif.iREN = 1'b1;
+	     dcif.ihit = ~ccif.iwait;
+	     dcif.imemload = ccif.iload;
+	     if (ccif.iwait)
+		  nextState = RAMWAIT;
+	     else
+		  nextState = IDLE;
+	  end
+	endcase // case (state)
+       
 	ccif.iaddr = dcif.imemaddr;
 
-	/*
-	blk_matches = blk.valid & (blk.tag == icache_addr.tag);
-	
-	dcif.ihit = blk_matches | ~ccif.iwait[CPUID];
-	dcif.imemload = (ccif.iREN[CPUID]) ? ccif.iload[CPUID] : blk.data;
-	ccif.iREN[CPUID] = ~blk_matches;
-	
-	*/
-     end
-
+     end // always_comb
+ 
 endmodule // icache
