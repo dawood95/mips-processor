@@ -450,17 +450,46 @@ module datapath (
 	dpif.dmemWEN = mem.memWen;
 	dpif.dmemREN = mem.memRen;
 
-	pcEn_ifde = (dpif.ihit & dpif.dhit) & !dpif.halt & !mem.memRen & !mem.memWen;
-	pcEn_deex = dpif.dhit & !dpif.halt &
-		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	pcEn_ifde = !dpif.halt & dpif.ihit & dpif.dhit &
+		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen)&
+		    !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	  	      
+	if (mem.jr | !btb_correct) 
+	  begin
+	     pcEn_deex = !dpif.halt & dpif.ihit &
+			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) ;
+			 //!(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	   
+	     pcEn_exmem = !dpif.halt & dpif.ihit;
+	     pcEn_memregw = !dpif.halt & dpif.ihit;
+	  end
+	else
+	  begin
+//	     pcEn_ifde = !dpif.halt & dpif.dhit &
+//			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);	      
+	     pcEn_deex = !dpif.halt & dpif.dhit &
+			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+	     //!(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	      
+	     pcEn_exmem = !dpif.halt & dpif.dhit;
+	     pcEn_memregw = !dpif.halt & dpif.dhit;
+	  end
+
+	ifde_en = 1'b1;//dpif.ihit;
+	deex_en = btb_correct & !mem.jr & dpif.ihit &
+		  !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	   
+	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
+
+	
+	//pcEn_ifde = dpif.ihit & dpif.dhit & !dpif.halt &
+	//	    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);//& !mem.memRen & !mem.memWen;
+	//pcEn_deex = dpif.ihit & dpif.dhit & !dpif.halt &
+	//	    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
 	//!((mem.memRen | mem.memWen) & brTake);
 	
-	pcEn_exmem = dpif.dhit & !dpif.halt;
-	pcEn_memregw = dpif.dhit & !dpif.halt;
+	//pcEn_exmem = dpif.dhit & !dpif.halt & dpif.ihit;
+	//pcEn_memregw = dpif.dhit & !dpif.halt & dpif.ihit;
 
-	ifde_en = 1'b1;//btb_correct;
-	deex_en = !mem.memRen & !mem.memWen & btb_correct & !(mem.jr | exec.jr);
-	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
+	//ifde_en = 1'b1;//btb_correct;
+	//deex_en = btb_correct & !mem.jr;
+	//exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
 	//memwb
 	  
 	//pcEn = (dpif.ihit | dpif.dhit) & !dpif.halt & 

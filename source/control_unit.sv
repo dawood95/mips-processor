@@ -121,7 +121,8 @@ module control_unit
 	//Memory Write Enable
 	memWEN = (iinstr.opcode == SW) ? 1 : 0;
 	//Register Write Enable
-	regWEN = ((rinstr.opcode == RTYPE && rinstr.funct == JR) || 
+	regWEN = ((rinstr.opcode == RTYPE && rinstr.funct == JR) ||
+		  (rinstr.opcode == RTYPE && rinstr.funct == SLL && rinstr.rd == 0) ||
 		  (iinstr.opcode == BEQ) ||
 		  (iinstr.opcode == BNE) || 
 		  (iinstr.opcode == SW)  ||
