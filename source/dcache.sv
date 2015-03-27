@@ -15,8 +15,8 @@
 
 module dcache (
 	       input logic CLK, nRST,
-	       datapath_cache_if.dcache dcif,
-	       cache_control_if.dcache ccif
+	       datapath_cache_if dcif,
+	       cache_control_if ccif
 	       );
    
    // Import types

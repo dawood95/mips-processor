@@ -381,7 +381,7 @@ module datapath (
 	     btb_correct = 0;
 	     btb_wrongtype = 1'b1;
 	  end
-	else if(!(mem.brAddr ^ mem.btb_target) & mem.brTake)
+	else if((mem.brAddr ^ mem.btb_target) && mem.brTake)
 	  begin
 	     //Not correct
 	     btb_correct = 0;
@@ -459,7 +459,7 @@ module datapath (
 	pcEn_memregw = dpif.dhit & !dpif.halt;
 
 	ifde_en = 1'b1;//btb_correct;
-	deex_en = !mem.memRen & !mem.memWen & btb_correct & !mem.jr;
+	deex_en = !mem.memRen & !mem.memWen & btb_correct & !(mem.jr | exec.jr);
 	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
 	//memwb
 	  
