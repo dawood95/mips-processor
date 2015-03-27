@@ -55,6 +55,7 @@ module br_predict
 	     twoBitSat[2] <= NTAKE2;
 	     twoBitSat[3] <= NTAKE2;
 	     isValid <= '{default:'0};
+	     target <= '{default:'0};
 	  end
 	else if(br)
 	  begin
@@ -67,6 +68,10 @@ module br_predict
    // next state
    always_comb
      begin
+	twoBitSat_next[0] = twoBitSat[0];
+	twoBitSat_next[1] = twoBitSat[1];
+	twoBitSat_next[2] = twoBitSat[2];
+	twoBitSat_next[3] = twoBitSat[3];
 	case(twoBitSat[w_index])
 	  TAKE1:
             begin
@@ -88,6 +93,13 @@ module br_predict
                if(brTaken) twoBitSat_next[w_index] = NTAKE1;
                else twoBitSat_next[w_index] = NTAKE2;
             end
+	  default:
+	    begin
+	       twoBitSat_next[0] = twoBitSat[0];
+	       twoBitSat_next[1] = twoBitSat[1];
+	       twoBitSat_next[2] = twoBitSat[2];
+	       twoBitSat_next[3] = twoBitSat[3];
+	    end
 	endcase
      end
 
