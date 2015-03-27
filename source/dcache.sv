@@ -144,7 +144,7 @@ module dcache (
 		      end
 		 end
 	     endcase
-	     if(dcif.dhit) frame[addr.idx].leastrecent <= ~bsel;
+	     if(dcif.dhit & (dcif.dmemREN | dcif.dmemWEN)) frame[addr.idx].leastrecent <= ~bsel;
 	  end 
      end
 
@@ -302,7 +302,7 @@ module dcache (
 			 nextState = idle;
 			 next_flush_frame = 0;
 			 next_flush_block = 0;
-			 bsel = 1'b0;
+			 bsel = 1'b1;
 			 wen = 1'b0;
 		 	 count_en = 1'b1;
 			 ccif.dREN = 1'b0;
