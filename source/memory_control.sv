@@ -22,10 +22,12 @@ module memory_control (
 
    import cpu_types_pkg::*;
 
-   typedef enum logic [1:0] {
+   typedef enum logic [2:0] {
 			     IDLE,
+			     SNOOP,
 			     MEM,
-			     SNOOP
+			     MEMR1,
+			     MEMR2
 			     }ccstate_t;
 
    ccstate_t currentState, nextState;
@@ -35,32 +37,34 @@ module memory_control (
    logic        memWrite, memWrite_next;	
    logic 	rCache, sCache;
    logic 	rCache_next;
-   
+   logic        memR;	
+
    always_comb
      sCache = ~rCache;
 
    always_ff @ (posedge CLK, negedge nRST)
-     if(!nRST)
-       begin
-	  currentState <= IDLE;
-	  rCache <= 0;
-	  memWrite <= 0;
-	  inv <= 0;
-	  snoopAddr <= 0;
-       end
-     else
-       begin
-	  currentState <= nextState;
-	  rCache <= rCache_next;
-	  memWrite <= memWrite_next;
-	  inv <= inv_next;
-	  snoopAddr <= snoopAddr_next;
-       end
-
+     begin
+	if(!nRST)
+	  begin
+	     currentState <= IDLE;
+	     rCache <= 0;
+	     memWrite <= 0;
+	     inv <= 0;
+	     snoopAddr <= 0;
+	  end
+	else
+	  begin
+	     currentState <= nextState;
+	     rCache <= rCache_next;
+	     memWrite <= memWrite_next;
+	     inv <= inv_next;
+	     snoopAddr <= snoopAddr_next;
+	  end
+     end // always_ff @
+   
    //Next State Logic
    always_comb
      begin
-
 	case(currentState)
 	  IDLE:
 	    begin
@@ -112,15 +116,14 @@ module memory_control (
 	    begin
 	       if(ccif.cctrans[sCache])
 		 nextState = SNOOP;
+	       else if(memR)
+		 nextState = MEMR1;
 	       else
 		 nextState = IDLE;
 	       rCache_next = rCache;
 	       memWrite_next = memWrite;
 	       inv_next = inv;
-	       if(ccif.ramstate == ACCESS)
-		 snoopAddr_next = {snoopAddr[31:3],~snoopAddr[2],snoopAddr[1:0]};
-	       else
-		 snoopAddr_next = snoopAddr;
+	       snoopAddr_next = snoopAddr;
 	    end
 	  MEM:
 	    begin
@@ -133,13 +136,35 @@ module memory_control (
 	       inv_next = inv;
 	       snoopAddr_next = snoopAddr;
 	    end
+	  MEMR1:
+	    begin
+	       if(ccif.ramstate == ACCESS)
+		 nextState = MEMR2;
+	       else
+		 nextState = MEMR1;
+	       rCache_next = rCache;
+	       memWrite_next = memWrite;
+	       inv_next = inv;
+	       snoopAddr_next = snoopAddr;
+	    end
+	  MEMR2:
+	    begin
+	       if(ccif.ramstate == ACCESS)
+		 nextState = IDLE;
+	       else
+		 nextState = MEMR1;
+	       rCache_next = rCache;
+	       memWrite_next = memWrite;
+	       inv_next = inv;
+	       snoopAddr_next = snoopAddr;
+	    end // case: MEMR2
 	  default:
 	    begin
 	       nextState = IDLE;
 	       rCache_next = rCache;
 	       memWrite_next = memWrite;
 	       inv_next = inv;
-	       snoopAddr_next = snoopAddr;	  
+	       snoopAddr_next = snoopAddr;
 	    end
 	endcase // case (currentState)
      end
@@ -147,10 +172,17 @@ module memory_control (
    //Output Logic
    always_comb
      begin
+	ccif.dwait = 2'b11;
+	ccif.iwait = 2'b11;
+	ccif.ccwait = 2'b00;
+	ccif.ccinv = 2'b00;
+	ccif.dload = {32'hbad1bad1,32'hbad1bad1};
+	ccif.ccsnoopaddr = {snoopAddr, snoopAddr};
+	
 	case(currentState)
-
 	  MEM:
 	    begin
+	       memR = 1'b0;
 	       ccif.ramWEN = memWrite;
 	       ccif.ramREN = ~memWrite;
 	       
@@ -210,39 +242,61 @@ module memory_control (
 
 	       ccif.ccwait = 0;
 	       ccif.ccinv = 0;
-	       ccif.ccsnoopaddr = 32'hbad1bad1;
+	    end
+	  MEMR1, MEMR2:
+	    begin
+	       memR = 1'b0;
+	       ccif.ramWEN = 0;
+	       ccif.ramREN = ccif.dREN[rCache];
+	       
+	       ccif.iload = {ccif.ramload, ccif.ramload};
+	       ccif.dload = {ccif.ramload, ccif.ramload};
+	       ccif.ramstore = 32'hbad1bad1;
+
+	       ccif.ramaddr = ccif.daddr[rCache];
+
+	       ccif.dwait[sCache] = ccif.dREN[sCache] | ccif.dWEN[sCache];
+	       ccif.iwait = ccif.iREN;
+	       
+	       if(ccif.ramstate == FREE || ccif.ramstate == ACCESS)
+		 ccif.dwait[rCache] = 1'b0;
+	       else
+		 ccif.dwait[rCache] = 1'b1;
+
+	       ccif.ccwait = 0;
+	       ccif.ccinv = 0;
 	    end
 	  SNOOP:
 	    begin
-	       //dREN = 1'b1 only if M->S. Write to mem only if going from M->S
-	       ccif.ramWEN = ccif.dREN[sCache] & ccif.dWEN[sCache];
-	       ccif.ramREN = ~ccif.dWEN[sCache];
-	       
-	       ccif.iload = {32'hbad1bad1,32'hbad1bad1};
-	       ccif.dload[sCache] = 32'hbad1bad1;
+	       memR = ~ccif.dWEN[sCache];
+	       ccif.ramWEN = ccif.dWEN[sCache];
+	       ccif.ramREN = 1'b0;
+
+	       ccif.iload = {ccif.ramload, ccif.ramload};
+	       ccif.dload[sCache] = ccif.ramload;
 	       ccif.dload[rCache] = ccif.dWEN[sCache] ? ccif.dstore[sCache] : ccif.ramload;
 	       ccif.ramstore = ccif.dstore[sCache];
 
-	       ccif.ramaddr = ccif.dWEN[sCache] ? ccif.daddr[sCache] : snoopAddr;
+	       ccif.ramaddr = ccif.daddr[sCache];
 
 	       ccif.iwait = ccif.iREN;
-
-	       if(ccif.dWEN[sCache] & ~ccif.dREN[sCache]) // S
-		 ccif.dwait = 2'b00;
-	       else if(ccif.ramstate == ACCESS ||
-		       ccif.ramstate == FREE)
-		 ccif.dwait = 2'b00;
+	       
+	       if(ccif.ramstate == ACCESS || ccif.ramstate == FREE)
+		 begin
+		    ccif.dwait[rCache] = ~ccif.dWEN[sCache];
+		    ccif.dwait[sCache] = 1'b0;
+		 end
 	       else
 		 ccif.dwait = 2'b11;
 
 	       ccif.ccwait[sCache] = 1'b1;
 	       ccif.ccwait[rCache] = 1'b0;
+	       ccif.ccinv[rCache] = 1'b0;
 	       ccif.ccinv[sCache] = inv;
-	       ccif.ccsnoopaddr[rCache] = 32'hbad1bad1;
-	       ccif.ccsnoopaddr[sCache] = snoopAddr;
-	    end
+	    end // case: SNOOP
 	  default: // & IDLE
 	    begin
+	       memR = 0;
 	       ccif.ramWEN = 0;
 	       ccif.ramREN = 0;
 	       
@@ -259,7 +313,6 @@ module memory_control (
 
 	       ccif.ccwait = 0;
 	       ccif.ccinv = 0;
-	       ccif.ccsnoopaddr = 0;
 	    end
 	endcase // case (currentState)
      end
