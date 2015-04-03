@@ -52,17 +52,59 @@ program test(
    initial
      begin
 	//	dump_memory();
-	$monitor("iWAIT = %d, dWAIT = %d",ccif.iwait,ccif.dwait);
-	nRST = 1'b1;
+	// $monitor("iWAIT[0] = %d, dWAIT[0] = %d, iWAIT[1] = %d, dWAIT[1] = %d",ccif.iwait[0],ccif.dwait[0],ccif.iwait[1],ccif.dwait[1]);
+	// $monitor("Check coherence P0: ccwait[0] = %d, ccinv[0] =%d, ccsnoopaddr[0] = %h", ccif.ccwait[0], ccif.ccinv[0], ccif.ccsnoopaddr[0]);
+	// $monitor("Check coherence P1: ccwait[1] = %d, ccinv[1] =%d, ccsnoopaddr[1] = %h", ccif.ccwait[1], ccif.ccinv[1], ccif.ccsnoopaddr[1]);
+	
 	nRST = 1'b0;
-	ccif.iREN = 1'b1;
-	ccif.dREN = 1'b0;
-	ccif.dWEN = 1'b0;
-	ccif.iaddr = 32'h00000000;
-	ccif.daddr = 0;
+	@(posedge CLK);
+	nRST = 1'b1;
+
+	$display("Start tests");
+	// Set P1
+	ccif.iaddr[1] = 0;
+	ccif.iREN[1] = 0;
+	ccif.dWEN[1] = 0;
+	ccif.dREN[1] = 0;
+	ccif.dstore[1] = 0;
+	ccif.daddr[1] = 0;
+	ccif.ccwrite[1] = 0;
+	ccif.cctrans[1] = 0;
+	
+	$display("Test 1: Write some data to P0");
+	ccif.iaddr[0] = 0;
+	ccif.iREN[0] = 0;
+	ccif.dWEN[0] = 1;
+	ccif.dREN[0] = 0;
+	ccif.cctrans[0] = 0;
+	ccif.ccwrite[0] = 1;
+	ccif.dstore[0] = 32'hDEADBEEF;
+	ccif.daddr[0] = 32'h000003e8;
+	@(posedge CLK);
+	// P0 should wait while a write completesa
+	if (ccif.dwait[0] == 1)
+	  $display("passed: ccif.dwait[0] = %2d", ccif.dwait[0]);
+	else
+	  $display("FAILED: ccif.dwait[0] = %2d", ccif.dwait[0]);
+	repeat (4) @(posedge CLK); // allow write to complete
+	$display("dwait[0] = %d", ccif.dwait[0]);
+	ccif.dWEN[0] = 0;
+	ccif.ccwrite[0] = 0;
+
+	$display("Test 2: Read instruction from P0");
+	@(posedge CLK);
+	ccif.iREN[0] = 1'b1;
+	ccif.dREN[0] = 1'b0;
+	ccif.dWEN[0] = 1'b0;
+	ccif.iaddr[0] = 32'h000003e8;
+	ccif.daddr[0] = 0;
 	repeat (4) @(posedge CLK);
-	$display("Reading instruction from address");
-	$display("Instruction from address %h = %h",ccif.iaddr,ccif.iload);
+	if (ccif.iaddr[0] == 32'hDEADBEEF)
+	  $display("passed: Instruction from address %h = %h",ccif.iaddr[0],ccif.iload[0]);
+	else
+	  $display("FAILED: Instruction from address %h = %h",ccif.iaddr[0],ccif.iload[0]);
+
+	/*
 	ccif.iaddr = 32'h00000004;
 	ccif.daddr = 32'h00000008;
 	repeat (4) @(posedge CLK);
@@ -89,6 +131,10 @@ program test(
 	$display("Data from address %h = %h",ccif.daddr,ccif.dload);
 	$display("Writing data %h to address %h",ccif.dstore, ccif.daddr);
 	repeat (4) @(posedge CLK);
+	 */
+
+	$display("End tests");
+	
 	dump_memory;
      end
 
