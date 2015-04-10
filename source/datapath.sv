@@ -17,12 +17,12 @@ module datapath (
 		 input logic CLK, nRST,
 		 datapath_cache_if.dp dpif
 		 );
+
+   parameter PC_INIT;
+   
    // import types\
    import cpu_types_pkg::*;
    import pipeline_if::*;
-
-   // pc init
-   parameter PC_INIT = 0;
 
    //Interfaces 
    alu_if alif();
@@ -36,7 +36,7 @@ module datapath (
    //Local signals
    
    word_t npc, npc_ff, immExt;
-   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, halt, btb_correct, btb_wrongtype;
+   logic 		     pcEn_ifde, pcEn_deex, pcEn_exmem, pcEn_memregw, ifde_en, deex_en, exmem_en, immExt_sel, btb_correct, btb_wrongtype;
    logic [1:0] 		     regW_sel;
    
    i_t iinstr;

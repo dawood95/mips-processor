@@ -72,7 +72,7 @@ module memory_control (
 	       if(ccif.dREN[0])
 		 begin
 		    nextState = SNOOP;
-		    rCache_next = 0;
+		    rCache_next = 1'b0;
 		    memWrite_next = memWrite;
 		    inv_next = ccif.ccwrite[0];
 		    snoopAddr_next = ccif.daddr[0];
@@ -81,7 +81,7 @@ module memory_control (
 	       else if(ccif.dREN[1])
 		 begin
 		    nextState = SNOOP;
-		    rCache_next = 0;
+		    rCache_next = 1'b1;
 		    memWrite_next = memWrite;
 		    inv_next = ccif.ccwrite[1];
 		    snoopAddr_next = ccif.daddr[1];
@@ -127,12 +127,12 @@ module memory_control (
 	    end
 	  MEM:
 	    begin
-	       if(ccif.ramstate == ACCESS)
+	       if(ccif.ramstate == ACCESS && ~memWrite)
 		 nextState = IDLE;
 	       else
 		 nextState = MEM;
 	       rCache_next = rCache;
-	       memWrite_next = memWrite;
+	       memWrite_next = 1'b0;
 	       inv_next = inv;
 	       snoopAddr_next = snoopAddr;
 	    end
@@ -152,7 +152,7 @@ module memory_control (
 	       if(ccif.ramstate == ACCESS)
 		 nextState = IDLE;
 	       else
-		 nextState = MEMR1;
+		 nextState = MEMR2;
 	       rCache_next = rCache;
 	       memWrite_next = memWrite;
 	       inv_next = inv;

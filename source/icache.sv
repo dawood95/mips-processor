@@ -14,7 +14,7 @@
 module icache (
 	       input logic CLK, nRST,
 	       datapath_cache_if.icache dcif,
-	       cache_control_if.icache ccif
+	       cache_control_if ccif
 	       );
 
    import cpu_types_pkg::*;
@@ -56,7 +56,7 @@ module icache (
 	       IDLE: begin
 	       end
 	       RAMWAIT: begin
-	     	  frames[icache_addr.idx].data <= ccif.iload;
+	     	  frames[icache_addr.idx].data <= ccif.iload[CPUID];
 		  frames[icache_addr.idx].tag <= icache_addr.tag;
 		  frames[icache_addr.idx].valid <= 1'b1;
 	       end
@@ -70,7 +70,8 @@ module icache (
 	// cast incoming address
 	icache_addr = icachef_t'(dcif.imemaddr);
 	blk = frames[icache_addr.idx];
-
+	ccif.iaddr[CPUID] = dcif.imemaddr;
+	
 	case(state)
 	  IDLE: begin
 	     if (blk.valid & (blk.tag == icache_addr.tag))
@@ -78,30 +79,30 @@ module icache (
 	       begin
 		  dcif.ihit = 1'b1;
 		  dcif.imemload = blk.data;
-		  ccif.iREN = 0;
+		  ccif.iREN[CPUID] = 0;
 		  nextState = IDLE;
 	       end
 	     else
 	       // miss
 	       begin
 		  dcif.ihit = 1'b0;
-		  ccif.iREN = 1'b0;
+		  ccif.iREN[CPUID] = 1'b0;
 		  dcif.imemload = 32'hbad1bad1;
 		  nextState = RAMWAIT;
  	       end
 	  end // case: IDLE
 	  RAMWAIT: begin
-	     ccif.iREN = 1'b1;
-	     dcif.ihit = ~ccif.iwait;
-	     dcif.imemload = ccif.iload;
-	     if (ccif.iwait)
+	     ccif.iREN[CPUID] = 1'b1;
+	     dcif.ihit = ~ccif.iwait[CPUID];
+	     dcif.imemload = ccif.iload[CPUID];
+	     if (ccif.iwait[CPUID])
 		  nextState = RAMWAIT;
 	     else
 		  nextState = IDLE;
 	  end
 	endcase // case (state)
        
-	ccif.iaddr = dcif.imemaddr;
+
 
      end // always_comb
  
