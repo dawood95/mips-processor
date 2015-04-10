@@ -6,6 +6,9 @@
  epberry@purdue.edu
  
  Data Cache
+ 
+ TODO :
+ S -> M
 */
 
 `include "datapath_cache_if.vh"
@@ -139,6 +142,7 @@ module dcache (
 		 end
 	       ccwrite2:
 		 begin
+		    frame[snoopaddr.idx].block[membsel].modified <= 1'b0;
 		    if(ccif.ccinv[CPUID])
 		      begin
 			 frame[snoopaddr.idx].block[membsel].valid <= 1'b0;
@@ -204,25 +208,29 @@ module dcache (
 	       else if(dcif.dmemWEN)
 		 begin
 		    if(!(frame[addr.idx].block[0].tag ^ addr.tag) & 
-		       (frame[addr.idx].block[0].valid))
+		       (frame[addr.idx].block[0].valid) &
+		       (frame[addr.idx].block[0].modified))
 		      begin
 			 nextState = idle;
 			 bsel = 1'b0;
 		      end
 		    else if(!(frame[addr.idx].block[1].tag ^ addr.tag) &
-			    (frame[addr.idx].block[1].valid))
+			    (frame[addr.idx].block[1].valid) &
+			    (frame[addr.idx].block[1].modified))
 		      begin
 			 nextState = idle;
 			 bsel = 1'b1;
 		      end
 		    else
 		      begin
-			 if(!frame[addr.idx].block[0].valid)
+			 if(!frame[addr.idx].block[0].valid |
+			    (!(frame[addr.idx].block[1].tag ^ addr.tag) & !frame[addr.idx].block[0].modified))
 			   begin
 			      nextState = memload1;
 			      bsel = 1'b0;
 			   end
-			 else if(!frame[addr.idx].block[1].valid)
+			 else if(!frame[addr.idx].block[1].valid |
+				 (!(frame[addr.idx].block[1].tag ^ addr.tag) & !frame[addr.idx].block[0].modified))
 			   begin
 			      nextState = memload1;
 			      bsel = 1'b1;
@@ -263,7 +271,7 @@ module dcache (
 			      nextState = memload1;
 			      bsel = 1'b0;
 			   end
-			 else if(!frame[addr.idx].block[1].valid)
+			 else if(!frame[addr.idx].block[1].valid)		
 			   begin
 			      nextState = memload1;
 			      bsel = 1'b1;
@@ -286,7 +294,7 @@ module dcache (
 	       else
 		 begin
 		    nextState = idle;
-		    bsel = memsel;
+		    bsel = membsel;
 		 end
 	    end // case: idle
 	  memwrite1:
@@ -448,7 +456,7 @@ module dcache (
      end // always_comb
 
    //Output logic
-   always_comb
+   always @ (*)
      begin
 	wen = 1'b0;
 	count_en = 1'b0;
@@ -480,16 +488,17 @@ module dcache (
 		 dcif.dhit = 1'b0;
 	       else if(dcif.dmemWEN)
 		 begin
-		    
 		    if(!(frame[addr.idx].block[0].tag ^ addr.tag) & 
-		       (frame[addr.idx].block[0].valid))
+		       (frame[addr.idx].block[0].valid) &
+		       (frame[addr.idx].block[0].modified))
 		      begin
 			 wen = 1'b1;
 			 count_en = 1'b1;
 			 dcif.dhit = 1'b1;		    
 		      end
 		    else if(!(frame[addr.idx].block[1].tag ^ addr.tag) &
-			    (frame[addr.idx].block[1].valid))
+			    (frame[addr.idx].block[1].valid) &
+			    (frame[addr.idx].block[1].modified))
 		      begin
 			 wen = 1'b1;
 			 count_en = 1'b1;
@@ -571,7 +580,7 @@ module dcache (
 	       wen = 1'b1;
 	       ccif.dREN[CPUID] = 1'b1;
 	       ccif.daddr[CPUID] = {addr.tag,addr.idx,addr.blkoff,addr.bytoff};
-	       dcif.dmemload = ccif.dload;
+	       dcif.dmemload = ccif.dload[CPUID];
 	       dcif.dhit = ~(ccif.dwait[CPUID]);	       
 	    end // case: memload2
 	  flush1:
@@ -599,6 +608,7 @@ module dcache (
 	    end // case: flush1
 	  flush2:
 	    begin
+	       ccif.cctrans[CPUID] = 1'b0;
 	       ccif.dWEN[CPUID] = 1'b1;
 	       ccif.dstore[CPUID] = frame[flush_frame].block[flush_block].data[1];
 	       ccif.daddr[CPUID] = {frame[flush_frame].block[flush_block].tag,flush_frame,3'b100};
@@ -606,16 +616,18 @@ module dcache (
 	    end // case: flush2
 	  ccwrite1:
 	    begin
+	       ccif.cctrans[CPUID] = 1'b1;
 	       ccif.dWEN[CPUID] = 1'b1;
-	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[membsel].data[~snoopaddr.blkoff];
-	       ccif.daddr[CPUID] = {snoopaddr.tag,snoopaddr.idx,~snoopaddr.blkoff,snoopaddr.bytoff};
+	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[membsel].data[snoopaddr.blkoff];
+	       ccif.daddr[CPUID] = {snoopaddr.tag,snoopaddr.idx,snoopaddr.blkoff,snoopaddr.bytoff};
 	       dcif.dhit = 1'b0;
 	    end
 	  ccwrite2:
 	    begin
+	       ccif.cctrans[CPUID] = ccif.dwait[CPUID];
 	       ccif.dWEN[CPUID] = 1'b1;
-	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[membsel].data[snoopaddr.blkoff];
-	       ccif.daddr[CPUID] = {snoopaddr.tag,snoopaddr.idx,snoopaddr.blkoff,snoopaddr.bytoff};
+	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[membsel].data[~snoopaddr.blkoff];
+	       ccif.daddr[CPUID] = {snoopaddr.tag,snoopaddr.idx,~snoopaddr.blkoff,snoopaddr.bytoff};
 	       dcif.dhit = 1'b0;
 	    end
 	  halt:

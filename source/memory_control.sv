@@ -138,7 +138,7 @@ module memory_control (
 	    end
 	  MEMR1:
 	    begin
-	       if(ccif.ramstate == ACCESS)
+	       if(ccif.ramstate == ACCESS || ccif.ramstate == FREE)
 		 nextState = MEMR2;
 	       else
 		 nextState = MEMR1;
@@ -149,7 +149,7 @@ module memory_control (
 	    end
 	  MEMR2:
 	    begin
-	       if(ccif.ramstate == ACCESS)
+	       if(ccif.ramstate == ACCESS || ccif.ramstate == FREE)
 		 nextState = IDLE;
 	       else
 		 nextState = MEMR2;
@@ -252,7 +252,7 @@ module memory_control (
 	       ccif.iload = {ccif.ramload, ccif.ramload};
 	       ccif.dload = {ccif.ramload, ccif.ramload};
 	       ccif.ramstore = 32'hbad1bad1;
-
+	       
 	       ccif.ramaddr = ccif.daddr[rCache];
 
 	       ccif.dwait[sCache] = ccif.dREN[sCache] | ccif.dWEN[sCache];
@@ -262,7 +262,7 @@ module memory_control (
 		 ccif.dwait[rCache] = 1'b0;
 	       else
 		 ccif.dwait[rCache] = 1'b1;
-
+	       
 	       ccif.ccwait = 0;
 	       ccif.ccinv = 0;
 	    end
