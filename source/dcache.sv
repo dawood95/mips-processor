@@ -50,8 +50,7 @@ module dcache (
 			     memload2,
 			     flush1,
 			     flush2,
-			     halt, //count writeback
-			     halt1
+			     halt
 			     } dstate_t;
    
    dstate_t 		   currentState, nextState;		   
@@ -108,6 +107,11 @@ module dcache (
 			 frame[addr.idx].block[bsel].data[addr.blkoff] <= dcif.dmemstore;
 			 frame[addr.idx].block[bsel].modified <= 1'b1;
 		      end
+
+		     if(ccif.ccwait[CPUID] & ccif.ccinv[CPUID])
+		      begin
+			 frame[snoopaddr.idx].block[membsel].valid <= 1'b0;
+		      end
 		 end
 	       memload1:
 		 begin
@@ -115,6 +119,10 @@ module dcache (
 		    frame[addr.idx].block[bsel].tag <= addr.tag;
 		    frame[addr.idx].block[bsel].modified <= 1'b0;
 		    frame[addr.idx].block[bsel].valid <= 1'b1;
+		    if(ccif.ccwait[CPUID] & ccif.ccinv[CPUID])
+		      begin
+			 frame[snoopaddr.idx].block[membsel].valid <= 1'b0;
+		      end
 		 end
 	       memload2:
 		 begin
@@ -133,6 +141,11 @@ module dcache (
 			 frame[addr.idx].block[bsel].valid <= 1'b1;
 		      end
 		 end // case: memload2
+	       flush1, memwrite1:
+		 if(ccif.ccwait[CPUID] & ccif.ccinv[CPUID])
+		   begin
+		      frame[snoopaddr.idx].block[membsel].valid <= 1'b0;
+		   end
 	       flush2:
 		 begin
 		    if(nextState == flush1)
@@ -443,15 +456,8 @@ module dcache (
 	    end
 	  halt:
 	    begin
-	       if(ccif.dwait[CPUID])
-		 nextState = halt;
-	       else
-		 nextState = halt1;
+	       nextState = halt;
 	    end // case: halt
-	  halt1:
-	    begin
-	       nextState = halt1;
-	    end
 	endcase // case (currentState)
      end // always_comb
 
@@ -631,13 +637,6 @@ module dcache (
 	       dcif.dhit = 1'b0;
 	    end
 	  halt:
-	    begin
-	       ccif.dWEN[CPUID] = 1;
-	       ccif.dstore[CPUID] = count;
-	       ccif.daddr[CPUID] = 32'h3100;
-	       dcif.dhit = 1'b0;
-	    end // case: halt
-	  halt1:
 	    begin
 	       dcif.dhit = 1'b1;
 	       dcif.flushed = 1'b1;
