@@ -166,7 +166,7 @@ unlock:
 mainp0:
   ori   $s0, $zero, 256          # loop total
   ori   $s1, $zero, 0            # loop counter
-  ori   $s3, $zero, 7            # previous crc value
+  ori   $s3, $zero, 5            # previous crc value
   ori   $s4, $zero, 10           # stack full value
   ori   $t5, $zero, s_count      # size of stack
   ori   $t7, $zero, s_ptr        # stack pointer
@@ -224,6 +224,7 @@ mainp1:
   lw    $s3, 0($s6)              # get stack top addr
   ori   $t7, $zero, 10000        # min (R15)
   ori   $s7, $zero, 0            # max (R23)
+  ori   $t9, $zero, outputs      # mem location to store results
 
 loop1:
   # get lock
@@ -239,14 +240,14 @@ loop1:
   add   $s2, $s2, $t8            # add val to running total
 
   # find min
-  or    $a0, $zero, $t7          # first arg to min
-  or    $a1, $zero, $t6          # second arg
+  andi  $a0, $t7, 0xFFFF         # first arg to min (lower 16 bits)
+  andi  $a1, $t6, 0xFFFF         # second arg (lower 16 bits)
   jal   min                      # find min of saved min & LIFO val
   or    $t7, $zero, $v0          # save new (or old maybe) min
 
   # find max
-  or    $a0, $zero, $s7          # first arg to max
-  or    $a1, $zero, $t6          # second arg to max
+  andi  $a0, $s7, 0xFFFF         # first arg to max (lower 16 bits)
+  andi  $a1, $t6, 0xFFFF         # second arg to max (lower 16 bits)
   jal   max                      # find max of saved max & LIFO val
   or    $s7, $zero, $v0          # save new (or old maybe) max
 
@@ -273,9 +274,23 @@ p1_unlock:
   or    $s4, $zero, $v0          # R20 <- quotient
   or    $s5, $zero, $v1          # R21 <- remainder
 
+  # store values
+  sw    $s4, 0($t9)              # store quotient
+  sw    $t7, 4($t9)              # store min
+  sw    $s7, 8($t9)              # store max
+
   pop   $ra
   jr    $ra
 #-mainp1-------------------------------------------------
+
+
+######### OUTPUTS #########
+org 0x800
+outputs:
+  cfw   0
+  cfw   0
+  cfw   0
+#-outputs-------------------------------------------------
 
 
 ######### STACK #########
@@ -300,3 +315,6 @@ stack:
 s_top:
   cfw   stack
 #-stack-------------------------------------------------
+
+
+
