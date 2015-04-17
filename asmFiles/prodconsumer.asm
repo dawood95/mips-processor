@@ -178,7 +178,7 @@ loop0_lock:
   ori   $a0, $zero, s_lock       # move lock to arg register
   jal   lock                     # acquire lock
 
-  # have lock
+  # have lock at this point
   lw    $t6, 0($t5)              # get stack size
   beq   $t6, $t4, stack_full     # if stack size == 9 -> stack_full
   addi  $t3, $t3, 1              # incr value to push to stack
@@ -215,11 +215,13 @@ stack_full:
 mainp1:
   ori   $s0, $zero, 257          # loop total
   ori   $s1, $zero, 0            # loop counter
-  ori   $s2, $zero, 0            # running sum
+  ori   $s2, $zero, 0            # running sum (R18)
   ori   $s4, $zero, s_count
   ori   $s5, $zero, s_ptr
   ori   $s6, $zero, s_top
-  lw    $s3, 0($s6)
+  lw    $s3, 0($s6)              # get stack top addr
+  ori   $t7, $zero, 10000        # min (R15)
+  ori   $s7, $zero, 0            # max (R23)
 
 loop1:
   # get lock
@@ -227,11 +229,24 @@ loop1:
   ori   $a0, $zero, s_lock       # move lock to arg register
   jal   lock                     # acquire lock
 
-  # have lock
+  # have lock at this point
   lw    $t5, 0($s5)              # get stack ptr
+  beq   $s3, $t5, p1_unlock      # don't do anything if stack empty
   lw    $t6, 0($t5)              # get val at top of stack
   add   $s2, $s2, $t6            # add val to running total
-  beq   $s3, $t5, p1_unlock      # don't decrement if stack empty
+
+  # find min
+  or    $a0, $zero, $t7          # first arg to min
+  or    $a1, $zero, $t6          # second arg
+  jal   min                      # find min of saved min & LIFO val
+  or    $t7, $zero, $v0          # save new (or old maybe) min
+
+  # find max
+  or    $a0, $zero, $s7          # first arg to max
+  or    $a1, $zero, $t6          # second arg to max
+  jal   max                      # find max of saved max & LIFO val
+  or    $s7, $zero, $v0          # save new (or old maybe) max
+
   lw    $t6, 0($s4)              # get stack size
   addi  $t6, $t6, -1             # dec stack size
   sw    $t6, 0($s4)              # update stack size
@@ -246,6 +261,16 @@ p1_unlock:
   addi  $s1, $s1, 1              # incr loop ctr
   bne   $s1, $s0, loop1          # end loop1
 
+  # find average
+  push  $ra
+  addi  $s0, $s0, -1             # subtract to get 256
+  or    $a0, $zero, $s2          # numerator is the sum
+  or    $a1, $zero, $s0          # denominator is 256
+  jal   divide                   # avg = sum / 256
+  or    $s4, $zero, $v0          # R20 <- quotient
+  or    $s5, $zero, $v1          # R21 <- remainder
+
+  pop   $ra
   jr    $ra
 #-mainp1-------------------------------------------------
 
