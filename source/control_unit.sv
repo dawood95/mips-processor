@@ -15,7 +15,7 @@ module control_unit
     output aluop_t     aluOp,
     output logic [2:0] pc_sel,
     output logic [1:0] portb_sel, regW_sel, wMemReg_sel,
-    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, beq, bne, jal, jr, halt
+    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, atomic, beq, bne, jal, jr, halt
     );
 
    i_t iinstr;
@@ -32,6 +32,12 @@ module control_unit
 
    always_comb
      begin
+
+	if(iinstr.opcode == LL | iinstr.opcode == SC)
+	  atomic = 1'b1;
+	else
+	  atomic = 1'b0;
+	
 	//JR
 	if(rinstr.opcode == RTYPE && rinstr.funct == JR)
 	  jr = 1'b1;
@@ -52,7 +58,7 @@ module control_unit
 	// 0 -> zero
 	// 1 -> sign
 	case(iinstr.opcode)
-	  ADDIU, ADDI, LW, SLTI, SLTIU, SW, BNE, BEQ: immExt_sel = 1'b1;
+	  ADDIU, ADDI, LW, SLTI, SLTIU, SW, BNE, BEQ, LL, SC: immExt_sel = 1'b1;
 	  default: immExt_sel = 1'b0;
 	endcase // case (iinstr.opcode)
 	//PortB Select
@@ -83,7 +89,7 @@ module control_unit
 	// 00 -> alu
 	// 01 -> Memory
 	// 10 -> Pc
-	if(iinstr.opcode == LW)
+	if(iinstr.opcode == LW | iinstr.opcode == SC | iinstr.opcode == LL)
 	  wMemReg_sel = 2'b01;
 	else if(iinstr.opcode == JAL)
 	  wMemReg_sel = 2'b10;
@@ -117,9 +123,9 @@ module control_unit
 	else
 	  pc_sel = 3'b00;
 	//Memory Read Enable
-	memREN = (iinstr.opcode == LW) ? 1 : 0;
+	memREN = (iinstr.opcode == LW | iinstr.opcode == LL) ? 1 : 0;
 	//Memory Write Enable
-	memWEN = (iinstr.opcode == SW) ? 1 : 0;
+	memWEN = (iinstr.opcode == SW | iinstr.opcode == SC) ? 1 : 0;
 	//Register Write Enable
 	regWEN = ((rinstr.opcode == RTYPE && rinstr.funct == JR) ||
 		  (rinstr.opcode == RTYPE && rinstr.funct == SLL && rinstr.rd == 0) ||
@@ -161,7 +167,7 @@ module control_unit
 	else
 	  begin
 	     case(iinstr.opcode)
-	       ADDI, ADDIU, SW, LW: aluOp = ALU_ADD;
+	       ADDI, ADDIU, SW, LW, LL, SC: aluOp = ALU_ADD;
 	       LUI: aluOp = ALU_SLL;
 	       ANDI : aluOp = ALU_AND;
 	       ORI : aluOp = ALU_OR;

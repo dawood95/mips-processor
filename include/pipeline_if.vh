@@ -31,6 +31,7 @@ package pipeline_if;
       //Instruction & PC
       word_t      instr;
       word_t      pc;
+      logic 	  atomic;
       logic       beq;
       logic 	  bne;
       logic 	  jal;
@@ -64,7 +65,8 @@ package pipeline_if;
    typedef struct packed {
       //Instruction
       logic       jr;	 
-      logic       jal;	  
+      logic       jal;	 
+      logic 	  atomic; 
       logic       beq;
       logic       bne;	  
       word_t      brAddr;
@@ -105,6 +107,7 @@ package pipeline_if;
       word_t      pc;
       logic 	  jal;
       logic 	  jr;
+      logic 	  atomic;
       logic       beq;
       logic 	  bne;
       logic       brTake;

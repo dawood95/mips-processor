@@ -131,6 +131,7 @@ module datapath (
        			     .memREN(decode.memRen), 
        			     .memWEN(decode.memWen), 
        			     .regWEN(decode.regWen),
+			     .atomic(decode.atomic),
        			     .beq(decode.beq),
 			     .bne(decode.bne),
 			     .jal(decode.jal),
@@ -196,11 +197,13 @@ module datapath (
 	     exec.pc <= 0;
 	     exec.dHalt <= 0;
 	     exec.btb_taken <= 0;
+	     exec.atomic <= 0;
 	  end // if (!nRST)
 	else if(pcEn_deex)
 	  begin
 	     if(deex_en)
 	       begin
+		  exec.atomic <= decode.atomic;
 		  exec.memRen <= decode.memRen;
 		  exec.memWen <= decode.memWen;
 		  exec.regWen <= decode.regWen;
@@ -215,6 +218,7 @@ module datapath (
 	       end // if (deex_en)
 	     else
 	       begin
+		  exec.atomic <= 0;
 		  exec.memRen <= 0;
 		  exec.memWen <= 0;
 		  exec.regWen <= 0;
@@ -299,6 +303,7 @@ module datapath (
      begin : ExecuteMemoryFF
 	if(!nRST)
 	  begin
+	     mem.atomic <= 0;
 	     mem.memRen <= 0;
 	     mem.memWen <= 0;
 	     mem.regWen <= 0;
@@ -319,6 +324,7 @@ module datapath (
 	  begin
 	     if(exmem_en)
 	       begin
+		  mem.atomic <= exec.atomic;
 		  mem.memRen <= exec.memRen;
 		  mem.memWen <= exec.memWen;
 		  mem.regWen <= exec.regWen;
@@ -332,6 +338,7 @@ module datapath (
 	       end
 	     else
 	       begin
+		  mem.atomic <= 0;
 		  mem.memRen <= 0;
 		  mem.memWen <= 0;
 		  mem.regWen <= 0;
@@ -365,6 +372,7 @@ module datapath (
    always_comb
      begin
 	mem.memData = dpif.dmemload;
+	dpif.datomic = mem.atomic;
       	dpif.dmemaddr = mem.aluOut;
 	dpif.dmemstore = mem.regData2;
 	mem.brTake = (mem.beq & mem.zf) | (mem.bne & !mem.zf) ;
@@ -451,12 +459,12 @@ module datapath (
 	dpif.dmemREN = mem.memRen;
 
 	pcEn_ifde = !dpif.halt & dpif.ihit & dpif.dhit &
-		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen)&
-		    !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	  	      
+		    !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic))) &
+		    !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic)));
 	if (mem.jr | !btb_correct) 
 	  begin
 	     pcEn_deex = !dpif.halt & dpif.ihit &
-			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) ;
+			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic)));
 			 //!(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	   
 	     pcEn_exmem = !dpif.halt & dpif.ihit;
 	     pcEn_memregw = !dpif.halt & dpif.ihit;
@@ -466,7 +474,7 @@ module datapath (
 //	     pcEn_ifde = !dpif.halt & dpif.dhit &
 //			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);	      
 	     pcEn_deex = !dpif.halt & dpif.dhit &
-			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen);
+			 !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic)));
 	     //!(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	      
 	     pcEn_exmem = !dpif.halt & dpif.dhit;
 	     pcEn_memregw = !dpif.halt & dpif.dhit;
@@ -474,8 +482,8 @@ module datapath (
 
 	ifde_en = 1'b1;//dpif.ihit;
 	deex_en = btb_correct & !mem.jr & dpif.ihit &
-		  !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & mem.memRen);	   
-	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & mem.memRen) & btb_correct & !mem.jr;
+		  !(((rinstr.rs == mem.regDest) | (rinstr.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic)));
+	exmem_en = !(((exec.rs == mem.regDest) | (exec.rt == mem.regDest)) & (mem.memRen | (mem.memWen & mem.atomic))) & btb_correct & !mem.jr;
 
 	
 	//pcEn_ifde = dpif.ihit & dpif.dhit & !dpif.halt &

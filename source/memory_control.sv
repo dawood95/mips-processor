@@ -82,7 +82,7 @@ module memory_control (
 		 begin
 		    nextState = SNOOP;
 		    nextReqCache = reqCache;
-		    nextSnoopAddr = ccif.daddr[snoopCache];
+		    nextSnoopAddr = ccif.daddr[reqCache];
 		 end
 	       else if (ccif.iREN[snoopCache])
 		 begin
@@ -178,7 +178,7 @@ module memory_control (
 	ccif.ccinv = 2'b00;
 	ccif.dload = {32'hbad1bad1, 32'hbad1bad1};
 	ccif.iload = {32'hbaad1bad, 32'hbaad1bad};
-	ccif.ccsnoopaddr = {32'd0, 32'd0};
+	ccif.ccsnoopaddr = {snoopAddr, snoopAddr};
 	
 	case (currentState)
 	  IDLE:
@@ -190,7 +190,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end // case: IDLE
 	  SNOOP:
 	    begin
@@ -205,7 +204,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end
 	  IMEMR:
 	    begin
@@ -220,7 +218,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end
 	  DMEMW1, DMEMW2:
 	    begin
@@ -235,7 +232,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end
    	  MEMR1, MEMR2:
 	    begin
@@ -250,7 +246,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end
 	  default:
 	    begin
@@ -261,7 +256,6 @@ module memory_control (
 	       
 	       ccif.ccwait[reqCache] = 1'b0;
 	       ccif.ccinv[reqCache] = 1'b0;
-	       ccif.ccsnoopaddr[reqCache] = 32'd0;
 	    end
 	endcase // case (currentState)
 	

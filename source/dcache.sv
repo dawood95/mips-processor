@@ -63,7 +63,41 @@ module dcache (
    
    dstate_t                snoopReturnState, nextSnoopReturnState;
    logic 		   snoopReturnBlock, nextSnoopReturnBlock;
+
+   logic 		   linkValid;
+   word_t                  linkAddr;
+   logic 		   atomicFailed;
+
+   /**************************************************
+    Link Register
+    **************************************************/
+
+   always_comb
+     begin
+	atomicFailed = ~((dcif.dmemaddr == linkAddr) & linkValid);
+     end
    
+   always_ff @ (posedge CLK, negedge nRST)
+     begin
+	if(!nRST)
+	  begin
+	     linkValid <= 1'b0;
+	     linkAddr <= 32'd0;
+	  end
+	else
+	  begin
+	     if (dcif.dmemREN & dcif.datomic)
+	       begin
+		  linkAddr <= dcif.dmemaddr;
+		  linkValid <= 1'b1;
+	       end
+	     if((ccif.ccwait[CPUID] & ccif.ccinv[CPUID] &
+		 !(frame[snoopaddr.idx].block[nextBlock].tag ^ snoopaddr.tag) & (linkAddr == snoopaddr)) |
+		(dcif.dmemWEN & dcif.dmemaddr == linkAddr))
+	       linkValid <= 1'b0;
+	  end
+     end
+
    // State Machine for DCache
    always_ff @ (posedge CLK, negedge nRST)
      begin
@@ -94,7 +128,7 @@ module dcache (
 	nextFlushFrame = flushFrame;
 	nextSnoopReturnState = snoopReturnState;
 	nextSnoopReturnBlock = snoopReturnBlock;
-	
+
 	case(currentState)
 
 	  idle:
@@ -128,7 +162,12 @@ module dcache (
 		 end
 	       else if(dcif.dmemWEN)
 		 begin
-		    if(!(frame[addr.idx].block[0].tag ^ addr.tag))
+		    if(dcif.datomic & atomicFailed)
+		      begin
+			 nextState = idle;
+			 nextBlock = 1'b0;
+		      end
+		    else if(!(frame[addr.idx].block[0].tag ^ addr.tag))
 		      begin
 			 if(frame[addr.idx].block[0].valid &
 			    frame[addr.idx].block[0].modified)
@@ -380,7 +419,7 @@ module dcache (
 	ccif.cctrans[CPUID] = 1'b0;
 
 	dcif.dhit = ~(dcif.dmemREN | dcif.dmemWEN);
-	dcif.dmemload = 1'b0;
+	dcif.dmemload = 32'd0;
 	dcif.flushed = 1'b0;
 
 	case(currentState)
@@ -399,15 +438,22 @@ module dcache (
 		 end // if (ccif.ccwait[CPUID])
 	       else if(dcif.dmemWEN)
 		 begin
-		    if((!(frame[addr.idx].block[0].tag ^ addr.tag) &
-			frame[addr.idx].block[0].valid &
-			frame[addr.idx].block[0].modified) |
-		       (!(frame[addr.idx].block[1].tag ^ addr.tag) &
-			frame[addr.idx].block[1].valid &
-			frame[addr.idx].block[1].modified))
+		    if(dcif.datomic & atomicFailed)
+		      begin
+			 frameWEN = 1'b0;
+			 dcif.dhit = 1'b1;
+			 dcif.dmemload = 32'd0;
+		      end
+		    else if((!(frame[addr.idx].block[0].tag ^ addr.tag) &
+			     frame[addr.idx].block[0].valid &
+			     frame[addr.idx].block[0].modified) |
+			    (!(frame[addr.idx].block[1].tag ^ addr.tag) &
+			     frame[addr.idx].block[1].valid &
+			     frame[addr.idx].block[1].modified))
 		      begin
 			 frameWEN = 1'b1;
 			 dcif.dhit = 1'b1;
+			 dcif.dmemload = 32'd1;
 		      end
 		 end
 	       else if(dcif.dmemREN)
@@ -477,7 +523,7 @@ module dcache (
 	       ccif.ccwrite[CPUID] = dcif.dmemWEN;
 	       ccif.dREN[CPUID] = 1'b1;
 	       ccif.daddr[CPUID] = {addr.tag, addr.idx, addr.blkoff, addr.bytoff};
-	       dcif.dmemload = ccif.dload[CPUID];
+	       dcif.dmemload = (dcif.dmemWEN) ? 32'd1 : ccif.dload[CPUID];
 	       dcif.dhit = ~(ccif.dwait[CPUID]);
 	    end
 
@@ -551,7 +597,8 @@ module dcache (
 			 frame[addr.idx].block[nextBlock].data[addr.blkoff] <= dcif.dmemstore;
 			 frame[addr.idx].block[nextBlock].modified <= 1'b1;
 		      end
-		    if(ccif.ccwait[CPUID] & ccif.ccinv[CPUID])
+		    if(ccif.ccwait[CPUID] & ccif.ccinv[CPUID] &
+		       !(frame[snoopaddr.idx].block[nextBlock].tag ^ snoopaddr.tag))
 		      frame[snoopaddr.idx].block[nextBlock].valid <= 1'b0;
 		 end
 	       
