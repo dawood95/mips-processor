@@ -164,16 +164,16 @@ unlock:
 
 ######### MAIN P0 #########
 mainp0:
-  ori   $s0, $zero, 12           # loop total
+  ori   $s0, $zero, 256          # loop total
   ori   $s1, $zero, 0            # loop counter
-  ori   $t2, $zero, 0x800        # test addr for sw
-  ori   $t3, $zero, 30           # test starting val for stack
+  ori   $t3, $zero, 0            # test starting val for stack
   ori   $t4, $zero, 10           # stack full value
   ori   $t5, $zero, s_count      # size of stack
   ori   $t7, $zero, s_ptr        # stack pointer
 
 loop0:
   # get lock
+loop0_lock:
   push  $ra                      # save return addr
   ori   $a0, $zero, s_lock       # move lock to arg register
   jal   lock                     # acquire lock
@@ -183,14 +183,14 @@ loop0:
   beq   $t6, $t4, stack_full     # if stack size == 9 -> stack_full
   addi  $t3, $t3, 1              # incr value to push to stack
   lw    $t6, 0($t7)              # get stack ptr
-  sw    $t3, 0($t6)              # store onto stack
   addi  $t6, $t6, 4              # increment stack ptr
+  sw    $t3, 0($t6)              # store onto stack
   sw    $t6, 0($t7)              # update stack ptr
   lw    $t6, 0($t5)              # get stack size
   addi  $t6, $t6, 1              # incr stack size
   sw    $t6, 0($t5)              # update stack size
 
-stack_full:
+  # release lock
   ori   $a0, $zero, s_lock       # move lock to arg reg
   jal   unlock                   # release lock
   pop   $ra                      # get return addr
@@ -199,22 +199,53 @@ stack_full:
   bne   $s1, $s0, loop0          # end loop0
 
   # end main p0
-  sw    $s1, 0($t2)
   jr    $ra
+
+# when stack is full - unlock and give p1 a chance to acquire
+# WARNING: infinite loop if nothing is being popped
+stack_full:
+  ori   $a0, $zero, s_lock       # move lock to arg reg
+  jal   unlock                   # release lock
+  pop   $ra                      # get return addr
+  j     loop0_lock               # try again for stack
 #-mainp0-------------------------------------------------
 
 
 ######### MAIN P1 #########
 mainp1:
-  ori   $t0, $zero, 10
-  ori   $t1, $zero, 0
-  ori   $t2, $zero, 0x804
+  ori   $s0, $zero, 257          # loop total
+  ori   $s1, $zero, 0            # loop counter
+  ori   $s2, $zero, 0            # running sum
+  ori   $s4, $zero, s_count
+  ori   $s5, $zero, s_ptr
+  ori   $s6, $zero, s_top
+  lw    $s3, 0($s6)
 
 loop1:
-  addi  $t1, $t1, 1
-  bne   $t1, $t0, loop1
+  # get lock
+  push  $ra                      # save return addr
+  ori   $a0, $zero, s_lock       # move lock to arg register
+  jal   lock                     # acquire lock
 
-  sw    $t1, 0($t2)
+  # have lock
+  lw    $t5, 0($s5)              # get stack ptr
+  lw    $t6, 0($t5)              # get val at top of stack
+  add   $s2, $s2, $t6            # add val to running total
+  beq   $s3, $t5, p1_unlock      # don't decrement if stack empty
+  lw    $t6, 0($s4)              # get stack size
+  addi  $t6, $t6, -1             # dec stack size
+  sw    $t6, 0($s4)              # update stack size
+  addi  $t5, $t5, -4             # dec stack ptr
+  sw    $t5, 0($s5)              # update stack ptr
+
+p1_unlock:
+  ori   $a0, $zero, s_lock       # move lock to arg reg
+  jal   unlock                   # release lock
+  pop   $ra                      # get return addr
+
+  addi  $s1, $s1, 1              # incr loop ctr
+  bne   $s1, $s0, loop1          # end loop1
+
   jr    $ra
 #-mainp1-------------------------------------------------
 
@@ -238,4 +269,6 @@ stack:
   cfw   0
   cfw   0
   cfw   0
+s_top:
+  cfw   stack
 #-stack-------------------------------------------------
