@@ -166,8 +166,8 @@ unlock:
 mainp0:
   ori   $s0, $zero, 256          # loop total
   ori   $s1, $zero, 0            # loop counter
-  ori   $t3, $zero, 0            # test starting val for stack
-  ori   $t4, $zero, 10           # stack full value
+  ori   $s3, $zero, 7            # previous crc value
+  ori   $s4, $zero, 10           # stack full value
   ori   $t5, $zero, s_count      # size of stack
   ori   $t7, $zero, s_ptr        # stack pointer
 
@@ -180,11 +180,13 @@ loop0_lock:
 
   # have lock at this point
   lw    $t6, 0($t5)              # get stack size
-  beq   $t6, $t4, stack_full     # if stack size == 9 -> stack_full
-  addi  $t3, $t3, 1              # incr value to push to stack
+  beq   $t6, $s4, stack_full     # if stack size == 9 -> stack_full
+  or    $a0, $zero, $s3          # first arg is prev crc
+  jal   crc32                    # generate random number
+  or    $s3, $zero, $v0          # store new random number
   lw    $t6, 0($t7)              # get stack ptr
   addi  $t6, $t6, 4              # increment stack ptr
-  sw    $t3, 0($t6)              # store onto stack
+  sw    $s3, 0($t6)              # store onto stack
   sw    $t6, 0($t7)              # update stack ptr
   lw    $t6, 0($t5)              # get stack size
   addi  $t6, $t6, 1              # incr stack size
@@ -233,7 +235,8 @@ loop1:
   lw    $t5, 0($s5)              # get stack ptr
   beq   $s3, $t5, p1_unlock      # don't do anything if stack empty
   lw    $t6, 0($t5)              # get val at top of stack
-  add   $s2, $s2, $t6            # add val to running total
+  andi  $t8, $t6, 0xFFFF         # only add the lower 16 bits
+  add   $s2, $s2, $t8            # add val to running total
 
   # find min
   or    $a0, $zero, $t7          # first arg to min
