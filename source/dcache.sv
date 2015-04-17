@@ -379,7 +379,7 @@ module dcache (
 	ccif.ccwrite[CPUID] = 1'b0;
 	ccif.cctrans[CPUID] = 1'b0;
 
-	dcif.dhit = 1'b0;
+	dcif.dhit = ~(dcif.dmemREN | dcif.dmemWEN);
 	dcif.dmemload = 1'b0;
 	dcif.flushed = 1'b0;
 
