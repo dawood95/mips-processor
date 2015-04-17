@@ -14,9 +14,9 @@ module caches (
 
    parameter CPUID = 0;
    // icache
-   icache #(.CPUID(CPUID)) ICACHE(CLK, nRST, dcif, ccif);
+   icache #(.CPUID(CPUID)) ICACHE(CLK, nRST, dcif.icache, ccif);
    // dcache
-   dcache #(.CPUID(CPUID)) DCACHE(CLK, nRST, dcif, ccif);
+   dcache #(.CPUID(CPUID)) DCACHE(CLK, nRST, dcif.dcache, ccif);
 
    /*
    // dcache invalidate before halt handled by dcache when exists
