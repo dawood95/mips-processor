@@ -512,6 +512,7 @@ module dcache (
 	  
 	  ccwrite1:
 	    begin
+	       ccif.ccwrite[CPUID] = 1'b1;
 	       ccif.dWEN[CPUID] = 1'b1;
 	       ccif.cctrans[CPUID] = 1'b1;
 	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[block].data[snoopaddr.blkoff];
@@ -519,6 +520,7 @@ module dcache (
 	    end
 	  ccwrite2:
 	    begin
+	       ccif.ccwrite[CPUID] = 1'b1;
 	       ccif.dWEN[CPUID] = 1'b1;//ccif.dwait[CPUID];
 	       ccif.cctrans[CPUID] = ccif.dwait[CPUID];//1'b1;
 	       ccif.dstore[CPUID] = frame[snoopaddr.idx].block[block].data[~snoopaddr.blkoff];

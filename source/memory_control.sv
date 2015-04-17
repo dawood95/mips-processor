@@ -32,7 +32,7 @@ module memory_control (
    ccstate_t currentState, nextState;
 
    logic 			   reqCache, snoopCache, nextReqCache;
-   word_t       snoopAddr, nextSnoopAddr;
+   word_t                          snoopAddr, nextSnoopAddr;
    
    always_comb
      snoopCache = ~reqCache;
@@ -107,7 +107,7 @@ module memory_control (
 	    begin
 	       if (ccif.cctrans[snoopCache])
 		 nextState = SNOOP;
-	       else if (ccif.dWEN[snoopCache])
+	       else if (ccif.dWEN[snoopCache] & ccif.ccwrite[snoopCache])
 		 nextState = IDLE;
 	       else
 		 nextState = MEMR1;
@@ -196,7 +196,7 @@ module memory_control (
 	    begin
 	       ccif.iwait[reqCache] = 1'b1;
 	       if (ccif.ramstate == ACCESS  )
-		 ccif.dwait[reqCache] = ~ccif.dWEN[snoopCache];
+		 ccif.dwait[reqCache] = ~(ccif.ccwrite[snoopCache] & ccif.dWEN[snoopCache]);
 	       else
 		 ccif.dwait[reqCache] = 1'b1;
 	       
@@ -270,7 +270,7 @@ module memory_control (
 	  SNOOP:
 	    begin
 	       ccif.iwait[snoopCache] = 1'b1;
-	       if (ccif.ramstate == ACCESS  )
+	       if (ccif.ramstate == ACCESS & ccif.ccwrite[snoopCache])
 		 ccif.dwait[snoopCache] = ~ccif.dWEN[snoopCache];
 	       else
 		 ccif.dwait[snoopCache] = 1'b1;
@@ -303,7 +303,7 @@ module memory_control (
 	    begin
 	       ccif.ramstore = ccif.dstore[snoopCache];
 	       ccif.ramaddr = ccif.daddr[snoopCache];
-	       ccif.ramWEN = ccif.dWEN[snoopCache];
+	       ccif.ramWEN = ccif.dWEN[snoopCache] & ccif.ccwrite[snoopCache];
 	       ccif.ramREN = 1'b0;
 	    end
 	  IMEMR:

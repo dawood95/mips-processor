@@ -135,7 +135,7 @@ org 0x400
 flag:
 cfw 0
 size:
-cfw 18
+cfw 13
 data:
 cfw 90
 cfw 81
