@@ -141,6 +141,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b0;
+			 nextSnoopReturnState = idle;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else if(!(frame[snoopaddr.idx].block[1].tag ^ snoopaddr.tag) &
 			    frame[snoopaddr.idx].block[1].valid &
@@ -148,6 +150,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b1;
+			 nextSnoopReturnState = idle;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else
 		      begin
@@ -247,6 +251,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b0;
+			 nextSnoopReturnState = memwrite1;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else if(!(frame[snoopaddr.idx].block[1].tag ^ snoopaddr.tag) &
 			    frame[snoopaddr.idx].block[1].valid &
@@ -254,6 +260,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b1;
+			 nextSnoopReturnState = memwrite1;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else
 		      begin
@@ -284,6 +292,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b0;
+			 nextSnoopReturnState = memload1;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else if(!(frame[snoopaddr.idx].block[1].tag ^ snoopaddr.tag) &
 			    frame[snoopaddr.idx].block[1].valid &
@@ -291,6 +301,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b1;
+			 nextSnoopReturnState = memload2;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else
 		      begin
@@ -321,6 +333,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b0;
+			 nextSnoopReturnState = flush1;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else if(!(frame[snoopaddr.idx].block[1].tag ^ snoopaddr.tag) &
 			    frame[snoopaddr.idx].block[1].valid &
@@ -328,6 +342,8 @@ module dcache (
 		      begin
 			 nextState = ccwrite1;
 			 nextBlock = 1'b1;
+			 nextSnoopReturnState = flush2;
+			 nextSnoopReturnBlock = block;
 		      end
 		    else
 		      begin
@@ -391,13 +407,6 @@ module dcache (
 	    end
 
 	endcase // case (currentState)
-
-	if(nextState == ccwrite1)
-	  begin
-	     nextSnoopReturnState = currentState;
-	     nextSnoopReturnBlock = block;
-	  end
-
      end // always_comb
    
    
