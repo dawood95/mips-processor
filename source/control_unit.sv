@@ -10,126 +10,84 @@
 module control_unit
   import cpu_types_pkg::*;
   (
-    input 	       word_t instr,
-    input logic        zf, of,
-    output 	       aluop_t aluOp,
-    output logic [1:0] portb_sel, pc_sel, regW_sel, wMemReg_sel,
-    output logic       porta_sel, immExt_sel, memREN, memWEN, regWEN, halt
+    input word_t instr,
+    input logic zf, of,
+    output logic reg_wr_sel, reg_dst, busA_sel, imm_ext_sel,
+    output logic memREN, memWEN, regWEN, halt,
+    output aluop_t aluOp,
+    output logic [1:0] busB_sel
   );
 
   i_t iinstr;
-  // j_t jinstr;
   r_t rinstr;
 
-always_comb
-  begin
-    // Instruction type cast
-    iinstr = i_t'(instr);
-    // jinstr = j_t'(instr);
-    rinstr = r_t'(instr);
-  end
+  // instruction cast
+  always_comb
+    begin
+      iinstr = i_t'(instr);
+      rinstr = r_t'(instr);
+    end
 
   always_comb
     begin
-      //Halt
       if(iinstr.opcode == HALT ||
        (rinstr.opcode == RTYPE &&
         (rinstr.funct == ADD ||
          rinstr.funct == SUB) && of) ||
        (iinstr.opcode == ADDI && of))
-      halt = 1'b1;
+        halt = 1'b1;
       else
         halt = 1'b0;
 
-      //Immediate Extension Select
-      // 0 -> zero
-      // 1 -> sign
+      // sign extension
       case(iinstr.opcode)
-        ADDIU, ADDI, LW, SLTI, SLTIU, SW: immExt_sel = 1'b1;
-        default: immExt_sel = 1'b0;
-      endcase // case (iinstr.opcode)
+        ADDIU, ADDI, LW, SLTI, SLTIU, SW: imm_ext_sel = 1'b1;
+        default: imm_ext_sel = 1'b0;
+      endcase
 
-      //PortB Select
-      // 00 -> Rt
-      // 01 -> shamt
-      // 10 -> immExt
-      // 11 -> 32'd16
+      // bus B
       if (iinstr.opcode == RTYPE)
         begin
-          case(rinstr.funct)
-            SLL, SRL: portb_sel = 2'b01;
-            default: portb_sel = 2'b00;
-          endcase // case (rinstr.funct)
+          if (rinstr.funct == SLL || rinstr.funct == SRL)
+            busB_sel = 2'b01;
+          else
+            busB_sel = 2'b00;
         end
       else
         begin
-          case(iinstr.opcode)
-            LUI: portb_sel = 2'b11;
-            default: portb_sel = 2'b10;
-          endcase // case (iinstr.opcode)
-        end // else: !if(iinstr.opcode == RTYPE)
+          if (iinstr.opcode == LUI)
+            busB_sel = 2'b11;
+          else
+            busB_sel = 2'b10;
+        end
 
-      //PortA Select
-      // 0 -> rs
-      // 1 -> imm
-      porta_sel = (iinstr.opcode == LUI) ? 1'b1 : 1'b0;
-      wMemReg_sel = (iinstr.opcode == LW) ? 2'b01 : 2'b00;
-      regW_sel = (iinstr.opcode == RTYPE) ? 2'b00 : 2'b01;
-
-      //Memory Read Enable
+      busA_sel = (iinstr.opcode == LUI) ? 1'b1 : 1'b0;
+      reg_wr_sel = (iinstr.opcode == LW) ? 1'b1 : 1'b0;
+      reg_dst = (iinstr.opcode == RTYPE) ? 1'b0 : 1'b1;
       memREN = (iinstr.opcode == LW) ? 1'b1 : 1'b0;
-
-      //Memory Write Enable
       memWEN = (iinstr.opcode == SW) ? 1'b1 : 1'b0;
-
-/*
-      //select for reg write
-      // 00 -> alu
-      // 01 -> Memory
-      if(iinstr.opcode == LW)
-        wMemReg_sel = 2'b01;
-      else
-        wMemReg_sel = 2'b00;
-*/
-
-      //Reg wsel Select
-      //00 -> rd
-      //01 -> rt
-/*
-      if(iinstr.opcode == RTYPE)
-        regW_sel = 2'b00;
-      else
-        regW_sel = 2'b01;
-*/
-
-      pc_sel = 2'b00;
-
-      //Register Write Enable
       regWEN = ((rinstr.opcode == RTYPE && rinstr.funct == JR) ||
         (iinstr.opcode == SW)) ? 0 : 1;
-
   end
 
   always_comb
   begin
-    // ALUOP
     if(rinstr.opcode == RTYPE)
     begin
       case(rinstr.funct)
         SLL: aluOp = ALU_SLL;
         SRL: aluOp = ALU_SRL;
-        ADD, ADDU : aluOp = ALU_ADD;
-        SUB, SUBU : aluOp = ALU_SUB;
         AND : aluOp = ALU_AND;
         OR : aluOp = ALU_OR;
         XOR : aluOp = ALU_XOR;
         NOR : aluOp = ALU_NOR;
+        ADD, ADDU : aluOp = ALU_ADD;
+        SUB, SUBU : aluOp = ALU_SUB;
         SLT : aluOp = ALU_SLT;
         SLTU : aluOp = ALU_SLTU;
         default : aluOp = '{default:'x};
       endcase
-    end
-    else
+    end else
     begin
       case(iinstr.opcode)
         ADDI, ADDIU, SW, LW: aluOp = ALU_ADD;
