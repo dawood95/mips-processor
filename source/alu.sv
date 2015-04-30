@@ -1,62 +1,83 @@
-`include "alu_if.vh"
+/* Sheik Dawood
+ - mg258
+ - dawood0@purdue.edu
+ ALU
+ */
+
 `include "cpu_types_pkg.vh"
+`include "alu_if.vh"
 
 module alu
-import cpu_types_pkg::*;
-(
-  alu_if.alu aluif
-);
+  import cpu_types_pkg::*;
+   (
+    alu_if.sv sv
+    );
 
-  word_t tempOut;
-
-always_comb
-begin
-  aluif.overflow = 0;
-  case (aluif.opcode)
-    // shift left logic
-    ALU_SLL : tempOut = aluif.portA << aluif.portB;
-    // shift right logic
-    ALU_SRL : tempOut = aluif.portA >> aluif.portB;
-    ALU_ADD :
+  always_comb
     begin
-      tempOut = $signed(aluif.portA) + $signed(aluif.portB);
-      /* addition overflow detection method:
-       * pos + pos = neg is overflow
-       * neg + neg = pos is overflow
-       * so check signs of operands AND result
-       */
-       if (aluif.portA[31] ~^ aluif.portB[31])
-       begin
-         if (aluif.portB[31] ^ aluif.outPort[31]) aluif.overflow = 1;
-       end else aluif.overflow = 0;
-    end
-    ALU_SUB :
-    begin
-      tempOut = $signed(aluif.portA) - $signed(aluif.portB);
-      /* subtraction overflow detection method:
-       * neg - pos = pos is overflow
-       * pos - neg = neg is overflow
-       * so check signs of operands AND result
-       */
-      if (aluif.portA[31] ^ aluif.portB[31])
-      begin
-        if (aluif.portB[31] ~^ aluif.outPort[31]) aluif.overflow = 1;
-      end else aluif.overflow = 0;
-    end
-    ALU_AND : tempOut = aluif.portB & aluif.portA;
-    ALU_OR : tempOut = aluif.portA | aluif.portB;
-    ALU_XOR : tempOut = aluif.portA ^ aluif.portB;
-    ALU_NOR : tempOut = ~(aluif.portA | aluif.portB);
-    // set less than signed (a<b -> 1, inverse -> 0)
-    ALU_SLT : tempOut = $signed(aluif.portA) < $signed(aluif.portB);
-    // set less than unsigned
-    ALU_SLTU : tempOut = (aluif.portA < aluif.portB);
-  endcase
-end
+       casez (sv.op)
+	 ALU_SLL:
+	   begin
+	      sv.out = sv.porta << sv.portb;
+	      sv.of = 0;
+	   end
+	 ALU_SRL:
+	   begin
+	      sv.out = sv.porta >> sv.portb;
+	      sv.of = 0;
+	   end
+	 ALU_ADD:
+	   begin
+	      sv.out = $signed(sv.porta) + $signed(sv.portb);
+	      sv.of = ~(sv.porta[WORD_W-1] ^ sv.portb[WORD_W-1]) & (sv.porta[WORD_W-1] ^ sv.out[WORD_W-1]);
+	   end
 
-  assign aluif.outPort = tempOut;
-  assign aluif.negative = tempOut[31];
-  assign aluif.zero = (tempOut == 0);
+	 ALU_SUB:
+	   begin
+	      sv.out = $signed(sv.porta) - $signed(sv.portb);
+	      sv.of = (sv.porta[WORD_W-1] ^ sv.portb[WORD_W-1]) & (sv.porta[WORD_W-1] ^ sv.out[WORD_W-1]);
+	   end
+	 ALU_AND:
+	   begin
+	      sv.out = sv.porta & sv.portb;
+	      sv.of = 0;
+	   end
+	 ALU_OR:
+	   begin
+	      sv.out = sv.porta | sv.portb;
+	      sv.of = 0;
+	   end
+	 ALU_XOR:
+	   begin
+	      sv.out = sv.porta ^ sv.portb;
+	      sv.of = 0;
+	   end
+	 ALU_NOR:
+	   begin
+	      sv.out = ~(sv.porta | sv.portb);
+	      sv.of = 0;
+	   end
+	 ALU_SLT:
+	   begin
+	      sv.out = ($signed(sv.porta) < $signed(sv.portb)) ? 1 : 0;
+	      sv.of = 0;
 
-endmodule
+	   end
+	 ALU_SLTU:
+	   begin
+	      sv.out = ($unsigned(sv.porta) < $unsigned(sv.portb)) ? 1 : 0;
+	      sv.of = 0;
+	   end
+	 default:
+	   begin
+	      sv.out = 0;
+	      sv.of = 0;
+	   end
+       endcase // case (sv.op)
+       sv.zf = (sv.out == 0) ? 1'b1 : 1'b0;
+       sv.nf = ($signed(sv.out) < 0) ? 1'b1 : 1'b0;
+    end // always_comb
+
+
+endmodule // alu
 

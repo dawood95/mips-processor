@@ -1,34 +1,32 @@
-/*
-  Everett Berry
-  epberry@purdue.edu
+/* Sheik Dawood
+ - mg258
+ - dawood0@purdue.edu
+ ALU Interface
+ */
 
-  alu interface
-*/
 `ifndef ALU_IF_VH
-`define ALU_IF_VH
+ `define ALU_IF_VH
 
-// all types
-`include "cpu_types_pkg.vh"
+ `include "cpu_types_pkg.vh"
 
 interface alu_if;
-  // import types
-  import cpu_types_pkg::*;
 
-  aluop_t opcode;
-  word_t portA, portB, outPort;
-  logic negative, overflow, zero;
+   import cpu_types_pkg::*;
 
-  // alu ports
-  modport alu (
-    input opcode, portA, portB,
-    output outPort, negative, overflow, zero
-  );
+   logic nf, zf, of;
+   word_t porta, portb, out;
+   aluop_t op;
 
-  // alu tb ports
-  modport tb (
-    input outPort, negative, overflow, zero,
-    output opcode, portA, portB
-  );
+   modport sv (
+	       input  porta, portb, op,
+	       output out, nf, zf, of
+	       );
+
+   modport tb (
+	       input  out, nf, zf, of,
+	       output porta, portb, op
+	       );
+
 endinterface
 
-`endif // ALU_IF_VH
+`endif

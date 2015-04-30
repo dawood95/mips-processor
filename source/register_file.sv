@@ -1,30 +1,38 @@
+/* Sheik Dawood
+ - mg258
+ - dawood0@purdue.edu
+
+ Register File
+ */
+
 `include "register_file_if.vh"
 `include "cpu_types_pkg.vh"
 
 module register_file
-import cpu_types_pkg::word_t;
-(
-  input logic CLK, nRST, register_file_if.rf rfif
-);
+  import cpu_types_pkg::*;
+    (
+     input logic CLK, nRST,
+     register_file_if.rf rf
+     );
 
-  word_t [31:0] register;
+   word_t register_f[31:0];
 
-  // next state
-  always_ff @(posedge CLK or negedge nRST)
-  begin
-    if (!nRST)
-    begin
-      register <= '{default:0};
-    end
-    else if (rfif.WEN)
-    begin
-      register[rfif.wsel] <= rfif.wdat;
-      register[0] <= 0; // register[0] must be constant 0
-    end
-  end
+   always_ff @(negedge CLK or negedge nRST)
+     begin
+	if(!nRST)
+	  begin
+	     register_f <= '{default:'0};
+	  end
+	else if(rf.WEN && rf.wsel)
+	  begin
+	     register_f[rf.wsel] <= rf.wdat;
+	  end
+     end // always_ff @
 
-  // output
-  assign rfif.rdat1 = register[rfif.rsel1];
-  assign rfif.rdat2 = register[rfif.rsel2];
+   always_comb
+     begin
+	rf.rdat1 = register_f[rf.rsel1];
+	rf.rdat2 = register_f[rf.rsel2];
+     end
 
-endmodule
+endmodule // test

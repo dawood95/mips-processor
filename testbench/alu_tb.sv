@@ -1,151 +1,175 @@
-/*
-  Eric Villasenor
-  evillase@gmail.com
+/* Sheik Dawood
+ - mg258
+ - dawood0@purdue.edu
+  Used Eric Villasenor's skeleton code
+ ALU Test Bench
+ */
 
-  register file test bench
-*/
-
-// mapped needs this
 `include "alu_if.vh"
-
-// mapped timing needs this. 1ns is too fast
+`include "cpu_types_pkg.vh"
 `timescale 1 ns / 1 ns
 
 module alu_tb;
 
-  parameter PERIOD = 10;
+   alu_if alif();
 
-  logic CLK = 0, nRST;
+   test PROG (alif);
 
-  // test vars
-  int v1 = 1;
-  int v2 = 4721;
-  int v3 = 25119;
-
-  // clock
-  always #(PERIOD/2) CLK++;
-
-  // interface
-  alu_if aluif ();
-  // test program
-  test PROG (aluif);
-  // DUT
 `ifndef MAPPED
-  alu DUT(aluif);
+   alu DUT(alif);
 `else
-  alu DUT(
-    .\aluif.opcode (aluif.opcode),
-    .\aluif.portA (aluif.portA),
-    .\aluif.portB (aluif.portB),
-    .\aluif.outPort (aluif.outPort),
-    .\aluif.negative (aluif.negative),
-    .\aluif.overflow (aluif.overflow),
-    .\aluif.zero (aluif.zero)
-  );
+   alu DUT(
+	   .\sv.porta (alif.porta),
+	   .\sv.portb (alif.portb),
+	   .\sv.op (alif.op),
+	   .\sv.out (alif.out),
+	   .\sv.nf (alif.nf),
+	   .\sv.zf (alif.zf),
+	   .\sv.of (alif.of)
+	   );
 `endif
 
-endmodule
-
+endmodule // alu_tb
 
 program test
-import cpu_types_pkg::*;
-(
-  alu_if.tb aluif_tb
-);
+  import cpu_types_pkg::*;
+   (
+    alu_if.tb tb
+    );
+   initial
+     begin
+	//Logical Shift Left
+	$display("====================");
+	$display("Logical Shift Left");
+	tb.porta = 32'd5;
+	tb.portb = 32'd1;
+	tb.op = ALU_SLL;
+	#5;
+	$display("PortA  = %b\nPortB  = %32d\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	tb.porta = 32'd225;
+	tb.portb = 32'd32;
+	tb.op = ALU_SLL;
+	#5;
+	$display("PortA  = %b\nPortB  = %32d\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//Logical Shift Right
+	$display("====================");
+	$display("Logical Shift Right");
+	tb.porta = 32'd5;
+	tb.portb = 32'd1;
+	tb.op = ALU_SRL;
+	#5;
+	$display("PortA  = %b\nPortB  = %32d\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	tb.porta = 32'd345;
+	tb.portb = 32'd32;
+	tb.op = ALU_SRL;
+	#5;
+	$display("PortA  = %b\nPortB  = %32d\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//Addition
+	$display("====================");
+	$display("Addition-basic");
+	tb.porta = 32'd5;
+	tb.portb = 32'd1;
+	tb.op = ALU_ADD;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Addition- 1+ 1-");
+	tb.porta = 32'd5;
+	tb.portb = -32'd1;
+	tb.op = ALU_ADD;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Addition- 1- 1-");
+	tb.porta = -32'd5;
+	tb.portb = -32'd1;
+	tb.op = ALU_ADD;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Addition- Overflow");
+	tb.porta = 2**31-1;
+	tb.portb = 2**31-1;
+	tb.op = ALU_ADD;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	//Sub
+	$display("====================");
+	$display("Sub-basic");
+	tb.porta = 32'd5;
+	tb.portb = 32'd1;
+	tb.op = ALU_SUB;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Sub- 1+ 1-");
+	tb.porta = 32'd5;
+	tb.portb = -32'd1;
+	tb.op = ALU_SUB;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Sub- 1- 1-");
+	tb.porta = -32'd5;
+	tb.portb = -32'd1;
+	tb.op = ALU_SUB;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	$display("====================");
+	$display("Sub- Overflow");
+	tb.porta = -(2**31-1);
+	tb.portb = 5;
+	tb.op = ALU_SUB;
+	#5;
+	$display("PortA  = %10d\nPortB  = %10d\nOutput = %10d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),$signed(tb.out),tb.nf,tb.of,tb.zf);
+	//AND
+	$display("====================");
+	$display("AND");
+	tb.porta = 2**31+1;
+	tb.portb = 2*15+255;
+	tb.op = ALU_AND;
+	#5;
+	$display("PortA  = %b\nPortB  = %b\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//OR
+	$display("====================");
+	$display("OR");
+	tb.porta = 2**31;
+	tb.portb = 2*15+255;
+	tb.op = ALU_OR;
+	#5;
+	$display("PortA  = %b\nPortB  = %b\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//XOR
+	$display("====================");
+	$display("XOR");
+	tb.porta = 2**31+9;
+	tb.portb = 2*15+255;
+	tb.op = ALU_XOR;
+	#5;
+	$display("PortA  = %b\nPortB  = %b\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//NOR
+	$display("====================");
+	$display("NOR");
+	tb.porta = 2**31;
+	tb.portb = 2*15+255;
+	tb.op = ALU_NOR;
+	#5;
+	$display("PortA  = %b\nPortB  = %b\nOutput = %b\nNF = %d VF = %d ZF = %d",tb.porta,tb.portb,tb.out,tb.nf,tb.of,tb.zf);
+	//SLT
+	$display("====================");
+	$display("Set Less that Signed");
+	tb.porta = -5;
+	tb.portb = 2;
+	tb.op = ALU_SLT;
+	#5;
+	$display("PortA  = %d\nPortB  = %d\nOutput = %d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),tb.out,tb.nf,tb.of,tb.zf);
+	//SLTU
+	$display("====================");
+	$display("Set Less that UnSigned");
+	tb.porta = -5;
+	tb.portb = 2;
+	tb.op = ALU_SLTU;
+	#5;
+	$display("PortA  = %d\nPortB  = %d\nOutput = %d\nNF = %d VF = %d ZF = %d",$signed(tb.porta),$signed(tb.portb),tb.out,tb.nf,tb.of,tb.zf);
+     end
+endprogram // test
 
-initial begin
-  parameter PERIOD = 10;
-  int testnum, chknRST, i;
-
-  $display("\n\n***** START OF TESTS *****\n");
-
-  // TEST 1: subtraction - basic
-  testnum++;
-  aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = 32'd40;
-  aluif_tb.portB = 32'd50;
-  #(PERIOD);
-  if (aluif_tb.outPort == 32'd90) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: output = %d", testnum, aluif_tb.outPort);
-
-  // TEST 2 addition - zero flag
-  testnum++;
-  aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = -40;
-  aluif_tb.portB = 32'd40;
-  #(PERIOD);
-  if (aluif_tb.zero) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: zero flag not set", testnum);
-
-  // TEST 3: addition - overflow flag bits
-  testnum++;
-  aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = 32'b01111111111111111111111111111111;// 1800000001;
-  aluif_tb.portB = 32'b00000000000000000000000000000001;// 1800000001;
-  #(PERIOD);
-  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: overflow flag not set", testnum);
-
-
-  // TEST 4: addition - negative flag
-  testnum++;
-  aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = -200;
-  aluif_tb.portB = -300;
-  #(PERIOD);
-  if (aluif_tb.negative) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: negative flag not set", testnum);
-
-  // TEST 5: subtraction - basic
-  testnum++;
-  aluif_tb.opcode = ALU_SUB;
-  aluif_tb.portA = 10000;
-  aluif_tb.portB = 6000;
-  #(PERIOD);
-  if (aluif_tb.outPort == 4000) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: subtraction result = %d", testnum,
-aluif_tb.outPort);
-
-  // TEST 6: subtraction - zero flag
-  testnum++;
-  aluif_tb.opcode = ALU_SUB;
-  aluif_tb.portA = 40;
-  aluif_tb.portB = 40;
-  #(PERIOD);
-  if (aluif_tb.zero) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: zero flag not set", testnum);
-
-  // TEST 7: subtraction - overflow flag
-  /********** OVERFLOW NEEDS MORE TESTING ******************/
-  testnum++;
-  aluif_tb.opcode = ALU_SUB;
-  aluif_tb.portA = -1800000000;
-  aluif_tb.portB = 1800000001;
-  #(PERIOD);
-  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: overflow flag not set", testnum);
-
-  // TEST 8: subtraction - negative flag
-  testnum++;
-  aluif_tb.opcode = ALU_SUB;
-  aluif_tb.portA = 600;
-  aluif_tb.portB = 1000;
-  #(PERIOD);
-  if (aluif_tb.negative) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: negative flag not set", testnum);
-
-  // TEST 9: addition - overflow flag large numbers
-  testnum++;
-  aluif_tb.opcode = ALU_ADD;
-  aluif_tb.portA = 1800000001;
-  aluif_tb.portB = 1800000001;
-  #(PERIOD);
-  if (aluif_tb.overflow) $display("TEST %2d passed", testnum);
-  else $error("TEST %2d FAILED: overflow flag not set", testnum);
-
-  #(PERIOD);
-
-  $display("\n***** END OF TESTS *****\n\n");
-end
-
-endprogram
