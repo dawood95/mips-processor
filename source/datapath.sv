@@ -48,13 +48,14 @@ module datapath (
     ***********************************************************************/
    always_comb
      begin
-	unique case(decode.pc_sel)
-	  3'b000, 3'b110, 3'b111: ifetch.imemAddr = npc_ff; 
+	case(decode.pc_sel)
+	  3'b000: ifetch.imemAddr = npc_ff; 
 	  3'b001: ifetch.imemAddr = mem.jraddr;//decode.regData1;
 	  3'b010: ifetch.imemAddr = decode.jAddr;
 	  3'b011: ifetch.imemAddr = decode.btb_target;
 	  3'b100: ifetch.imemAddr = mem.brTarget;
 	  3'b101: ifetch.imemAddr = mem.pc;
+	  default: ifetch.imemAddr = npc_ff;
 	endcase // case (decode.pc_sel)
 	ifetch.instr = dpif.imemload;
 	dpif.imemaddr = ifetch.imemAddr;
@@ -380,7 +381,7 @@ module datapath (
 	     btb_correct = 0;
 	     btb_wrongtype = 1'b1;
 	  end
-	else if(!(mem.brAddr ^ mem.btb_target) & mem.brTake)
+	else if((mem.brAddr != mem.btb_target) & mem.brTake)
 	  begin
 	     //Not correct
 	     btb_correct = 0;
